@@ -1,0 +1,296 @@
+[
+  {
+    "id": "gate_1_info",
+    "category": "gates",
+    "title": "Gate 1 (North Entrance) Details",
+    "content": "Gate 1 is the North Entrance of the stadium. It is fully wheelchair accessible with step-free ramps. It connects directly to Metro Line A (North Station) and the Taxi drop-off point. Operating hours on match days start 3 hours prior to kickoff. A ticket resolution booth is located right outside."
+  },
+  {
+    "id": "gate_2_info",
+    "category": "gates",
+    "title": "Gate 2 (East Entrance) Details",
+    "content": "Gate 2 is the East Entrance. It is accessible via ramps, though it has a steeper incline than Gate 1. It is closest to Metro Line A (East Station) and general parking Lot East. Ticketing inquiries can be made at the mobile help desks outside."
+  },
+  {
+    "id": "gate_3_info",
+    "category": "gates",
+    "title": "Gate 3 (South Entrance) Details",
+    "content": "Gate 3 is the South Entrance. It features state-of-the-art step-free elevators and wide security lanes, making it the recommended gate for families and guests with limited mobility. It connects directly to Metro Line B (South Station) and general parking Lot South."
+  },
+  {
+    "id": "gate_4_info",
+    "category": "gates",
+    "title": "Gate 4 (West Entrance) Details",
+    "content": "Gate 4 is the West Entrance. It is accessible via ramps. It connects to Metro Line B (West Station) and the VIP/Media parking area. Shuttle buses from the downtown transit center drop off passengers here every 5 minutes."
+  },
+  {
+    "id": "transit_metro_a",
+    "category": "transit",
+    "title": "Metro Line A Transit",
+    "content": "Metro Line A runs north-south and serves Gate 1 (North Station) and Gate 2 (East Station). Trains run every 3 minutes on match days. Wheelchair boarding assistance is available at all stations."
+  },
+  {
+    "id": "transit_metro_b",
+    "category": "transit",
+    "title": "Metro Line B Transit",
+    "content": "Metro Line B runs east-west and serves Gate 3 (South Station) and Gate 4 (West Station). Trains run every 4 minutes on match days. Low-floor buses connect Metro B stations to the surrounding city center."
+  },
+  {
+    "id": "medical_facilities",
+    "category": "medical",
+    "title": "Medical Center and First Aid",
+    "content": "The main stadium Medical Center is in Concourse A near Section 102 (ground level, wheelchair accessible). Secondary first aid stations are active at Section 204 (Concourse B) and Section 308 (Concourse C). In emergencies, notify any staff member with a radio."
+  },
+  {
+    "id": "dining_concourse_a",
+    "category": "dining",
+    "title": "Concourse A Dining (Halal & Veg)",
+    "content": "Concourse A features a wide range of international food. Section 105 has certified Halal food stalls and gluten-free/vegetarian options. Payments are card-only/cashless throughout the stadium."
+  },
+  {
+    "id": "dining_concourse_b",
+    "category": "dining",
+    "title": "Concourse B Dining & Partners",
+    "content": "Concourse B at Section 210 features official FIFA sponsor food and beverage stands, selling snacks, hot dogs, soft drinks, and beer (non-alcoholic options available). All stalls are accessible."
+  },
+  {
+    "id": "dining_concourse_c",
+    "category": "dining",
+    "title": "Concourse C Dining (Mexican & International)",
+    "content": "Concourse C at Section 315 features local Mexican street food, tacos, and international quick bites. Gluten-free tortillas are available upon request."
+  },
+  {
+    "id": "accessibility_wheelchairs",
+    "category": "accessibility",
+    "title": "Wheelchair Rental & Mobility Assistance",
+    "content": "Complimentary wheelchair rental and passenger pushing services are available at all Information Desks located near Gate 1 and Gate 3. Ramps are present at all gates, and accessible elevators service all seating levels."
+  },
+  {
+    "id": "accessibility_seating",
+    "category": "accessibility",
+    "title": "Accessible Seating Sections",
+    "content": "Dedicated accessible seating areas for wheelchair users and companions are situated in Sections 105, 106 (lower tier), 215, 216 (mid tier), and 305, 306 (upper tier). Elevators are adjacent to these sections."
+  },
+  {
+    "id": "prohibited_items",
+    "category": "rules",
+    "title": "Prohibited Items Policy",
+    "content": "For safety, the following items are strictly prohibited inside the stadium: backpacks/bags larger than A4 size, long umbrellas (collapsible ones are allowed), flares/fireworks, outside food/beverages (except baby food or medical items), professional camera gear, and banners with offensive text."
+  },
+  {
+    "id": "ticketing_booths",
+    "category": "ticketing",
+    "title": "Ticketing Help and Resolution",
+    "content": "Ticketing resolution booths are situated outside Gate 1 (North) and Gate 3 (South). If you experience issues with digital tickets, visit these booths with a valid photo ID and confirmation email. Open 4 hours before kickoff."
+  },
+  {
+    "id": "lost_and_found",
+    "category": "services",
+    "title": "Lost and Found Office",
+    "content": "Lost and Found is located in Concourse B, Room 204 (adjacent to the First Aid Station). If you find a lost item, please hand it to any steward. Inquiries about lost items can also be submitted digitally via the staff dashboard."
+  },
+  {
+    "id": "restrooms_accessible",
+    "category": "accessibility",
+    "title": "Accessible and Family Restrooms",
+    "content": "ADA-compliant accessible restrooms are available on all levels, located near Sections 104, 112, 205, 220, 304, and 318. Unisex family restrooms equipped with baby-changing tables are located near Gate 1 and Gate 3."
+  },
+  {
+    "id": "match_day_schedule",
+    "category": "rules",
+    "title": "Match Day Access and Hours",
+    "content": "Gates open exactly 3 hours before kickoff. We recommend arriving at least 2 hours early to navigate security queues. Keep your digital ticket open on your phone. Re-entry into the stadium is strictly prohibited."
+  },
+  {
+    "id": "multilingual_services",
+    "category": "services",
+    "title": "Multilingual Support",
+    "content": "FIFA volunteer stewards wearing bright green armbands speak multiple languages including English, Spanish, French, Portuguese, and Arabic. You can find them at major concourse intersections and gate entrances."
+  },
+  {
+    "id": "parking_lots",
+    "category": "transit",
+    "title": "Parking Lots and Access Permits",
+    "content": "The Red Parking Lot (near Gate 1) is reserved for VIPs, media, and accessible parking permit holders. The Blue Parking Lot (near Gate 3) is for general ticketholders. Parking permits must be pre-booked online; no drive-up parking is sold."
+  },
+  {
+    "id": "dining_concourse_d",
+    "category": "dining",
+    "title": "Concourse D Dining options",
+    "content": "Concourse D at Section 120 features local grill options, burgers, vegan patties, and standard stadium fare. All vendors accept major credit cards."
+  },
+  {
+    "id": "dining_vip_lounge",
+    "category": "dining",
+    "title": "VIP Lounge Dining Services",
+    "content": "The VIP Club Lounge features catering with hot and cold buffets, soft drinks, and light refreshments. Accessible tables and seating options are fully integrated throughout the lounge."
+  },
+  {
+    "id": "dining_concourse_b_halal",
+    "category": "dining",
+    "title": "Concourse B Halal Snack Corner",
+    "content": "A certified Halal snack stand operates at Section 212 in Concourse B, serving hot snacks and soft beverages throughout the match day."
+  },
+  {
+    "id": "dining_allergies_info",
+    "category": "dining",
+    "title": "Allergen Information Guidelines",
+    "content": "All dining stands display ingredient charts detailing common allergens. Peanut-free zones are designated near Section 105 and Section 220 for sensitive guests."
+  },
+  {
+    "id": "transit_shuttle_buses",
+    "category": "transit",
+    "title": "Downtown Shuttle Bus Service",
+    "content": "Complimentary shuttle buses run between the downtown transit terminal and Gate 4 every 5 minutes on match days, beginning 4 hours before kickoff."
+  },
+  {
+    "id": "transit_taxis_rideshares",
+    "category": "transit",
+    "title": "Taxi and Rideshare Drop-off Area",
+    "content": "Rideshare and taxi services drop off passengers at Parking Lot North near Gate 1. Pre-booked pickups are restricted to Lot South after the final whistle."
+  },
+  {
+    "id": "transit_bicycle_parking",
+    "category": "transit",
+    "title": "Bicycle Parking and Racks",
+    "content": "Free secure bicycle racks are located outside Gate 1. Cyclists are required to bring their own locks; the area is monitored by 24/7 security cameras."
+  },
+  {
+    "id": "transit_walking_paths",
+    "category": "transit",
+    "title": "Pedestrian Walkways and Greenways",
+    "content": "Illuminated pedestrian greenways connect Metro stations A and B directly to the outer stadium perimeter gates. Average walking time is under 8 minutes."
+  },
+  {
+    "id": "accessibility_sensory_room",
+    "category": "accessibility",
+    "title": "Sensory Room Access and Details",
+    "content": "A quiet sensory room for guests with sensory processing needs is located in Concourse A near Section 108. Sound-dampening headphones are available on request."
+  },
+  {
+    "id": "accessibility_service_animals",
+    "category": "accessibility",
+    "title": "Service Animals Policy",
+    "content": "Trained service animals are welcome. Relief stations equipped with water bowls are positioned outside Gate 1 and Gate 3."
+  },
+  {
+    "id": "accessibility_audio_guides",
+    "category": "accessibility",
+    "title": "Audio Descriptive Commentary",
+    "content": "Visually impaired guests can request FM receivers and headsets for audio descriptive commentary from the Information Desk at Gate 3."
+  },
+  {
+    "id": "accessibility_stroller_parking",
+    "category": "accessibility",
+    "title": "Stroller Parking and Check-In",
+    "content": "Strollers can be checked in free of charge at the Information Desks near Gates 1 and 3. Checked items are tagged and held securely until retrieval."
+  },
+  {
+    "id": "rules_camera_policy",
+    "category": "rules",
+    "title": "Camera and Video Recording Rules",
+    "content": "Compact cameras are permitted. Professional equipment with lenses longer than 15cm, tripods, and monopods are strictly prohibited without media credentials."
+  },
+  {
+    "id": "rules_banner_policy",
+    "category": "rules",
+    "title": "Banners and Signs Guidelines",
+    "content": "Banners must not exceed 2m x 1.5m and must not contain offensive, political, or commercial messages. Flagpoles must be made of flexible plastic under 1m."
+  },
+  {
+    "id": "rules_reentry_policy",
+    "category": "rules",
+    "title": "No Re-Entry Regulations",
+    "content": "Once your digital ticket is scanned, exit from the stadium gates is final. Re-entry is not permitted under any circumstances."
+  },
+  {
+    "id": "rules_smoking_policy",
+    "category": "rules",
+    "title": "Smoking and Vaping Ban",
+    "content": "The stadium is a 100% tobacco-free facility. Smoking, including the use of e-cigarettes and vapes, is strictly prohibited in all areas including seating bowls."
+  },
+  {
+    "id": "ticketing_digital_apps",
+    "category": "ticketing",
+    "title": "FIFA Mobile Ticketing Guide",
+    "content": "All entry tickets are 100% digital and must be accessed via the official FIFA Mobile Ticket App. Screenshots or PDFs are not accepted at gates."
+  },
+  {
+    "id": "ticketing_children_admission",
+    "category": "ticketing",
+    "title": "Children Admission and Tickets",
+    "content": "All spectators regardless of age (including infants in arms) must possess a valid match ticket to pass gate turnstiles."
+  },
+  {
+    "id": "ticketing_upgrade_desk",
+    "category": "ticketing",
+    "title": "Seat Upgrade Desk Information",
+    "content": "Seat upgrades or changes are subject to ticket availability and can be requested at the Customer Services Office located in Concourse B."
+  },
+  {
+    "id": "services_atm_banking",
+    "category": "services",
+    "title": "Reverse ATMs and Banking Services",
+    "content": "As a cashless venue, cash-to-card 'Reverse ATMs' are placed near Sections 112 and 220, converting cash to prepaid Visa cards fee-free."
+  },
+  {
+    "id": "services_charging_stations",
+    "category": "services",
+    "title": "Mobile Charging Lockers",
+    "content": "Secure mobile charging lockers equipped with USB-C and Lightning cables are available in Concourse B near Room 204."
+  },
+  {
+    "id": "services_lost_kids",
+    "category": "services",
+    "title": "Child Wristbands and Safety Registry",
+    "content": "Parents can register children at Information Desks and obtain contact wristbands to expedite reuniting families if separated."
+  },
+  {
+    "id": "services_merchandise_shops",
+    "category": "services",
+    "title": "FIFA Megastore and Fan Shops",
+    "content": "The main FIFA Megastore is located inside Concourse B near Gate 2. Smaller pop-up fan shops operate adjacent to Gates 1, 3, and 4."
+  },
+  {
+    "id": "weather_heat_guidelines",
+    "category": "weather_safety",
+    "title": "Extreme Heat and Hydration",
+    "content": "On hot days, cooling tents are active outside all main gates. Guests are encouraged to use free water refill stations located near restrooms."
+  },
+  {
+    "id": "weather_lightning_protocol",
+    "category": "weather_safety",
+    "title": "Severe Weather Evacuation",
+    "content": "In case of lightning or severe storms, spectators will be instructed to vacate seating bowls and take shelter inside the covered concourses."
+  },
+  {
+    "id": "weather_rain_protection",
+    "category": "weather_safety",
+    "title": "Rain Protection and Ponchos",
+    "content": "Reusable rain ponchos are sold at all official merchandise stands. Umbrellas with pointed metal tips are prohibited."
+  },
+  {
+    "id": "family_nursing_suites",
+    "category": "family_services",
+    "title": "Nursing Rooms and Lactation Suites",
+    "content": "Private lactation suites equipped with comfortable seating and power outlets are located near Section 106 and Section 215."
+  },
+  {
+    "id": "family_baby_changing",
+    "category": "family_services",
+    "title": "Baby Changing Facilities",
+    "content": "All restrooms, including male, female, and gender-neutral family restrooms, are equipped with wall-mounted baby changing tables."
+  },
+  {
+    "id": "family_play_areas",
+    "category": "family_services",
+    "title": "Kids Play and Entertainment Zones",
+    "content": "A supervised kids play zone operates near Section 304, offering light entertainment and games for children aged 3 to 8 during the match."
+  },
+  {
+    "id": "family_lost_child_protocol",
+    "category": "family_services",
+    "title": "Missing Children and Safety Protocol",
+    "content": "If a child is lost, contact any green-armband steward immediately. Missing children are escorted to the Lost & Found office at Room 204."
+  }
+]
