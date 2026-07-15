@@ -24,6 +24,25 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from fastapi.exceptions import ResponseValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_exception_handler(request: Request, exc: ResponseValidationError):
+    logger.error(f"Response validation error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Response format validation error."}
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again later."}
+    )
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
@@ -83,21 +102,29 @@ def read_root():
 
 @app.get("/api/v1/stadium/gates", response_model=List[GateStatus])
 def get_gates():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name, status, congestion_level, zone_id FROM gates")
-    gates = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return gates
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, status, congestion_level, zone_id FROM gates")
+        gates = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return gates
+    except Exception as e:
+        logger.error(f"Error in get_gates: {e}")
+        raise HTTPException(status_code=500, detail="Database connection error while retrieving gates.")
 
 @app.get("/api/v1/stadium/zones", response_model=List[ZoneStatus])
 def get_zones():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name, type, capacity, current_crowd, density FROM zones")
-    zones = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return zones
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, type, capacity, current_crowd, density FROM zones")
+        zones = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return zones
+    except Exception as e:
+        logger.error(f"Error in get_zones: {e}")
+        raise HTTPException(status_code=500, detail="Database connection error while retrieving zones.")
 
 @app.get("/api/v1/stadium/status", response_model=StadiumStatus)
 def get_stadium_status():
@@ -114,9 +141,17 @@ def get_stadium_status():
 @app.post("/api/v1/chat/fan", response_model=ChatResponse)
 async def chat_fan(request: FanChatRequest, req: Request):
     # Security: Sanitization & Input Validation
-    # Min length is 1, max is 500, validated by Pydantic
-    # Sanitize inputs to prevent prompt injection or execution
+    if not request.message or not request.message.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Message content cannot be empty or only whitespace."
+        )
     sanitized_message = request.message.replace("<", "&lt;").replace(">", "&gt;").strip()
+    
+    # Validate language parameter
+    lang = request.language.strip().lower() if request.language else "en"
+    if lang not in ["en", "es"]:
+        lang = "en"
     
     # Rate Limiting
     client_ip = req.client.host if req.client else "unknown"
@@ -129,6 +164,8 @@ async def chat_fan(request: FanChatRequest, req: Request):
     try:
         response_data = query_stadium_assistant(sanitized_message, is_staff=False)
         return response_data
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Error in chat_fan: {e}")
         raise HTTPException(status_code=500, detail="Internal assistant error.")
@@ -137,11 +174,18 @@ async def chat_fan(request: FanChatRequest, req: Request):
 
 @app.post("/api/v1/chat/staff", response_model=ChatResponse)
 async def chat_staff(request: StaffChatRequest):
-    # Sanitize inputs
+    # Security: Sanitization & Input Validation
+    if not request.message or not request.message.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Message content cannot be empty or only whitespace."
+        )
     sanitized_message = request.message.replace("<", "&lt;").replace(">", "&gt;").strip()
     try:
         response_data = query_stadium_assistant(sanitized_message, is_staff=True)
         return response_data
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Error in chat_staff: {e}")
         raise HTTPException(status_code=500, detail="Internal operations portal error.")
@@ -381,15 +425,19 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
 
 @app.get("/api/v1/staff/alerts", response_model=List[PlainLanguageAlert])
 def get_staff_alerts():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT id, name, density, current_crowd FROM zones")
-    zones = [dict(row) for row in cursor.fetchall()]
-    
-    cursor.execute("SELECT id, name, status FROM gates")
-    gates = [dict(row) for row in cursor.fetchall()]
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, name, density, current_crowd FROM zones")
+        zones = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.execute("SELECT id, name, status FROM gates")
+        gates = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+    except Exception as e:
+        logger.error(f"Database error in get_staff_alerts: {e}")
+        raise HTTPException(status_code=500, detail="Database connection error while retrieving alerts.")
     
     anomalies_list = []
     

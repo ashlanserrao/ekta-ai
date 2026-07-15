@@ -94,9 +94,9 @@ export default function App() {
       {/* Main Container */}
       <main role="main">
         {viewMode === "fan" ? (
-          <FanAssistant gates={gates} />
+          <FanAssistant gates={gates} zones={zones} />
         ) : (
-          <StaffDashboard zones={zones} alerts={alerts} />
+          <StaffDashboard zones={zones} alerts={alerts} gates={gates} />
         )}
       </main>
     </div>

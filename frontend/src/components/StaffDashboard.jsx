@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import InteractiveMap from "./InteractiveMap";
 
 const API_BASE = "http://localhost:8000";
 
-export default function StaffDashboard({ zones, alerts }) {
+export default function StaffDashboard({ zones, alerts, gates }) {
   // Chat state - Staff
   const [staffMessages, setStaffMessages] = useState([
     { sender: "bot", text: "Operations Intelligence Portal Active. Ask about crowd densities, gates status, or incident mitigations." }
@@ -91,6 +92,9 @@ export default function StaffDashboard({ zones, alerts }) {
             })}
           </div>
         </div>
+        
+        {/* Stadium Live Map Visualizer */}
+        <InteractiveMap gates={gates} zones={zones} />
         
         {/* Operational alerts */}
         <div className="glass-panel alert-panel" style={{ padding: "1.5rem" }}>

@@ -4,7 +4,7 @@ import { useVoice } from "../hooks/useVoice";
 
 const API_BASE = "http://localhost:8000";
 
-export default function FanAssistant({ gates }) {
+export default function FanAssistant({ gates, zones }) {
   // Chat state - Fan
   const [fanMessages, setFanMessages] = useState([
     { sender: "bot", text: "Welcome to FIFA World Cup 2026! I am EktaAI, your stadium assistant. How can I help you find your seat, food stalls, or accessible routes today?" }
@@ -78,7 +78,7 @@ export default function FanAssistant({ gates }) {
   return (
     <div className="view-container">
       {/* Left Col: Map View */}
-      <InteractiveMap gates={gates} activeRoute={activeRoute} />
+      <InteractiveMap gates={gates} zones={zones} activeRoute={activeRoute} />
       
       {/* Right Col: Chat widget */}
       <div className="glass-panel chat-container" aria-label="Fan chat assistant">
