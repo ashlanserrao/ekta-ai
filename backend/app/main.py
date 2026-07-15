@@ -300,7 +300,8 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
     # Core Failover Sequence
     # A. Try Gemini
     if llm_res is None and Config.GEMINI_API_KEY:
-        llm_res, success = execute_with_retry_and_circuit_breaker(
+        logger.info("Alert Translation: Attempting with Gemini provider.")
+        result = execute_with_retry_and_circuit_breaker(
             "gemini",
             lambda: GeminiLLMClient(Config.GEMINI_API_KEY),
             system_prompt,
@@ -308,11 +309,16 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
             tools=[],
             response_format={"type": "json_object"}
         )
+        if isinstance(result, tuple) and len(result) == 2:
+            llm_res, success = result
+        else:
+            llm_res, success = None, False
 
     # B. Try Groq
     if llm_res is None and Config.GROQ_API_KEY:
+        logger.info("Alert Translation: Attempting with Groq provider.")
         from backend.app.llm_client import GroqLLMClient
-        llm_res, success = execute_with_retry_and_circuit_breaker(
+        result = execute_with_retry_and_circuit_breaker(
             "groq",
             lambda: GroqLLMClient(Config.GROQ_API_KEY),
             system_prompt,
@@ -320,9 +326,14 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
             tools=[],
             response_format={"type": "json_object"}
         )
+        if isinstance(result, tuple) and len(result) == 2:
+            llm_res, success = result
+        else:
+            llm_res, success = None, False
 
     # C. Try Mock
     if llm_res is None:
+        logger.info("Alert Translation: Selecting Mock client (Fallback)")
         client_instance = MockLLMClient()
         llm_res = client_instance.generate(system_prompt, prompt, tools=[])
 
@@ -378,24 +389,41 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
     llm_res = None
     
     # A. Try Gemini
-    if Config.GEMINI_API_KEY:
-        try:
-            client_instance = GeminiLLMClient(Config.GEMINI_API_KEY)
-            llm_res = client_instance.generate(system_prompt, prompt, tools=[], response_format={"type": "json_object"})
-        except Exception as e:
-            logger.error(f"Gemini batch alert generation failed: {e}. Trying Groq fallback.")
-            
+    if llm_res is None and Config.GEMINI_API_KEY:
+        logger.info("Batch Alerts: Attempting with Gemini provider.")
+        result = execute_with_retry_and_circuit_breaker(
+            "gemini",
+            lambda: GeminiLLMClient(Config.GEMINI_API_KEY),
+            system_prompt,
+            prompt,
+            tools=[],
+            response_format={"type": "json_object"}
+        )
+        if isinstance(result, tuple) and len(result) == 2:
+            llm_res, success = result
+        else:
+            llm_res, success = None, False
+
     # B. Try Groq
     if llm_res is None and Config.GROQ_API_KEY:
-        try:
-            from backend.app.llm_client import GroqLLMClient
-            client_instance = GroqLLMClient(Config.GROQ_API_KEY)
-            llm_res = client_instance.generate(system_prompt, prompt, tools=[], response_format={"type": "json_object"})
-        except Exception as e:
-            logger.error(f"Groq batch alert generation failed: {e}. Falling back to Mock client.")
+        logger.info("Batch Alerts: Attempting with Groq provider.")
+        from backend.app.llm_client import GroqLLMClient
+        result = execute_with_retry_and_circuit_breaker(
+            "groq",
+            lambda: GroqLLMClient(Config.GROQ_API_KEY),
+            system_prompt,
+            prompt,
+            tools=[],
+            response_format={"type": "json_object"}
+        )
+        if isinstance(result, tuple) and len(result) == 2:
+            llm_res, success = result
+        else:
+            llm_res, success = None, False
             
     # C. Try Mock
     if llm_res is None:
+        logger.info("Batch Alerts: Selecting Mock client (Fallback)")
         client_instance = MockLLMClient()
         llm_res = client_instance.generate(system_prompt, prompt, tools=[])
         

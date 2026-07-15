@@ -147,9 +147,13 @@ class MockLLMClient:
             "section 305": "Section 305 Entry"
         }
         
+        # Normalize message to alphanumeric only for robust location matching in Mock client
+        msg_norm = "".join(c for c in normalized_msg if c.isalnum())
+        
         found_keys = []
         for key in locations.keys():
-            if key in normalized_msg:
+            key_norm = "".join(c for c in key if c.isalnum())
+            if key_norm in msg_norm:
                 found_keys.append(key)
                 
         is_route_query = any(w in normalized_msg for w in ["route", "get to", "go from", "directions", "how to", "how do i", "map", "llego", "ruta", "ir de", "ir a", "cómo"])

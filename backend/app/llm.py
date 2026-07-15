@@ -73,6 +73,8 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
                     Config.GEMINI_EXHAUSTED = True
                 elif provider_name == "groq":
                     Config.GROQ_EXHAUSTED = True
+                
+    return None, False
 
 # --- Define Python Tool Functions ---
 
@@ -130,7 +132,14 @@ def get_route(from_location: str, to_location: str, accessibility_required: bool
     def resolve_node_name(query: str) -> str:
         if not query:
             return ""
-        q_lower = query.lower().strip()
+        
+        def normalize(s: str) -> str:
+            return "".join(c for c in s.lower() if c.isalnum())
+            
+        q_norm = normalize(query)
+        if not q_norm:
+            return query
+            
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -141,13 +150,17 @@ def get_route(from_location: str, to_location: str, accessibility_required: bool
             logger.error(f"Database error in resolve_node_name: {e}")
             return query
             
-        # Check case-insensitive exact or substring match
+        # 1. Check exact normalized match
         for node in nodes:
-            if node.lower() == q_lower:
+            if normalize(node) == q_norm:
                 return node
+                
+        # 2. Check substring normalized match
         for node in nodes:
-            if node.lower() in q_lower or q_lower in node.lower():
+            n_norm = normalize(node)
+            if q_norm in n_norm or n_norm in q_norm:
                 return node
+                
         return query
         
     resolved_from = resolve_node_name(from_location)
@@ -227,40 +240,63 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
             logger.error(f"Injected client failed: {e}. Falling back to default failover.")
 
     # Core Failover Chain
+    final_provider = "mock"
+
     # 1. Try Gemini
     if llm_res is None and Config.GEMINI_API_KEY:
-        llm_res, success = execute_with_retry_and_circuit_breaker(
+        logger.info("Attempting LLM query with Gemini provider.")
+        result = execute_with_retry_and_circuit_breaker(
             "gemini",
             lambda: GeminiLLMClient(Config.GEMINI_API_KEY),
             system_prompt,
             user_message,
             tools_list
         )
+        if isinstance(result, tuple) and len(result) == 2:
+            llm_res, success = result
+        else:
+            llm_res, success = None, False
+            
         if success and llm_res:
             reply = llm_res.reply
             tool_calls = llm_res.tool_calls
+            final_provider = "gemini"
+        else:
+            logger.warning("Gemini failed or rate-limited. Falling back in pipeline.")
 
     # 2. Try Groq
     if llm_res is None and Config.GROQ_API_KEY:
+        logger.info("Attempting LLM query with Groq provider.")
         from backend.app.llm_client import GroqLLMClient
-        llm_res, success = execute_with_retry_and_circuit_breaker(
+        result = execute_with_retry_and_circuit_breaker(
             "groq",
             lambda: GroqLLMClient(Config.GROQ_API_KEY),
             system_prompt,
             user_message,
             tools_list
         )
+        if isinstance(result, tuple) and len(result) == 2:
+            llm_res, success = result
+        else:
+            llm_res, success = None, False
+            
         if success and llm_res:
             reply = llm_res.reply
             tool_calls = llm_res.tool_calls
+            final_provider = "groq"
+        else:
+            logger.warning("Groq failed or rate-limited. Falling back in pipeline.")
 
     # 3. Fallback to Mock Client
     if llm_res is None:
-        logger.info("Using MockLLMClient fallback.")
+        logger.info("Selected LLM provider: Mock client (Fallback)")
         mock_client = MockLLMClient()
         llm_res = mock_client.generate(system_prompt, user_message, tools_list)
         reply = llm_res.reply
         tool_calls = llm_res.tool_calls
+        final_provider = "mock"
+
+    logger.info(f"Final LLM execution provider selected: {final_provider}")
 
     # Inspect function calls to return structural tool data to the client
     last_tool = None
