@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import re
+import time
 from backend.app.config import Config
 from backend.app.database import get_db_connection
 from backend.app.rag import get_rag
@@ -9,6 +10,69 @@ from backend.app.rag import get_rag
 logger = logging.getLogger("llm")
 
 from backend.app.llm_client import GeminiLLMClient, MockLLMClient, ToolCall, LLMResult
+
+def is_quota_or_rate_limit_error(error_msg: str) -> bool:
+    """Helper to detect quota exhaustion, rate limits, or auth errors."""
+    error_lower = error_msg.lower()
+    return any(w in error_lower for w in [
+        "quota", 
+        "exhausted", 
+        "limit", 
+        "429", 
+        "too many requests",
+        "resource_exhausted",
+        "billing",
+        "api key",
+        "invalid key",
+        "unauthorized",
+        "auth",
+        "credentials"
+    ])
+
+def execute_with_retry_and_circuit_breaker(provider_name: str, client_initializer, system_prompt: str, user_message: str, tools: list, response_format: dict = None) -> tuple:
+    """
+    Executes an LLM call with a safe 2-time retry (3 attempts total) for transient issues, 
+    and immediately trips a circuit breaker on daily quota/auth errors, or after consecutive failures.
+    Returns: (LLMResult or None, success boolean)
+    """
+    if provider_name == "gemini" and Config.GEMINI_EXHAUSTED:
+        logger.info("Gemini circuit breaker is active. Skipping Gemini.")
+        return None, False
+    if provider_name == "groq" and Config.GROQ_EXHAUSTED:
+        logger.info("Groq circuit breaker is active. Skipping Groq.")
+        return None, False
+        
+    attempts = 3
+    backoff = 0.5
+    
+    for attempt in range(1, attempts + 1):
+        try:
+            client = client_initializer()
+            logger.info(f"[{provider_name.upper()}] Attempt {attempt} of {attempts}...")
+            llm_res = client.generate(system_prompt, user_message, tools, response_format=response_format)
+            return llm_res, True
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"[{provider_name.upper()}] Attempt {attempt} failed: {error_msg}")
+            
+            if is_quota_or_rate_limit_error(error_msg):
+                logger.warning(f"[{provider_name.upper()}] Quota/Rate Limit/Auth error detected! Tripping circuit breaker immediately.")
+                if provider_name == "gemini":
+                    Config.GEMINI_EXHAUSTED = True
+                elif provider_name == "groq":
+                    Config.GROQ_EXHAUSTED = True
+                break
+                
+            if attempt < attempts:
+                logger.info(f"Transient error detected. Sleeping {backoff}s before retry...")
+                time.sleep(backoff)
+                backoff *= 3
+            else:
+                logger.warning(f"[{provider_name.upper()}] Failed all {attempts} attempts. Tripping circuit breaker for safety.")
+                if provider_name == "gemini":
+                    Config.GEMINI_EXHAUSTED = True
+                elif provider_name == "groq":
+                    Config.GROQ_EXHAUSTED = True
 
 # --- Define Python Tool Functions ---
 
@@ -141,34 +205,36 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
     # Core Failover Chain
     # 1. Try Gemini
     if llm_res is None and Config.GEMINI_API_KEY:
-        try:
-            logger.info("Attempting live Gemini query...")
-            client_instance = GeminiLLMClient(Config.GEMINI_API_KEY)
-            llm_res = client_instance.generate(system_prompt, user_message, tools_list)
+        llm_res, success = execute_with_retry_and_circuit_breaker(
+            "gemini",
+            lambda: GeminiLLMClient(Config.GEMINI_API_KEY),
+            system_prompt,
+            user_message,
+            tools_list
+        )
+        if success and llm_res:
             reply = llm_res.reply
             tool_calls = llm_res.tool_calls
-            logger.info("Gemini response generated successfully.")
-        except Exception as e:
-            logger.error(f"Gemini generation failed: {e}. Switching to Groq fallback.")
 
     # 2. Try Groq
     if llm_res is None and Config.GROQ_API_KEY:
-        try:
-            logger.info("Attempting live Groq query...")
-            from backend.app.llm_client import GroqLLMClient
-            client_instance = GroqLLMClient(Config.GROQ_API_KEY)
-            llm_res = client_instance.generate(system_prompt, user_message, tools_list)
+        from backend.app.llm_client import GroqLLMClient
+        llm_res, success = execute_with_retry_and_circuit_breaker(
+            "groq",
+            lambda: GroqLLMClient(Config.GROQ_API_KEY),
+            system_prompt,
+            user_message,
+            tools_list
+        )
+        if success and llm_res:
             reply = llm_res.reply
             tool_calls = llm_res.tool_calls
-            logger.info("Groq response generated successfully.")
-        except Exception as e:
-            logger.error(f"Groq generation failed: {e}. Switching to Mock client fallback.")
 
     # 3. Fallback to Mock Client
     if llm_res is None:
         logger.info("Using MockLLMClient fallback.")
-        client_instance = MockLLMClient()
-        llm_res = client_instance.generate(system_prompt, user_message, tools_list)
+        mock_client = MockLLMClient()
+        llm_res = mock_client.generate(system_prompt, user_message, tools_list)
         reply = llm_res.reply
         tool_calls = llm_res.tool_calls
 

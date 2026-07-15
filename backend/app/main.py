@@ -12,7 +12,7 @@ from backend.app.models import (
     FanChatRequest, StaffChatRequest, ChatResponse,
     StadiumStatus, GateStatus, ZoneStatus, PlainLanguageAlert
 )
-from backend.app.llm import query_stadium_assistant
+from backend.app.llm import query_stadium_assistant, execute_with_retry_and_circuit_breaker
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -187,13 +187,43 @@ def get_deterministic_alert_fallback(alert_data: dict) -> tuple[str, str]:
         
     return message, action
 
+def extract_and_parse_json(text: str) -> dict:
+    """Robust parser to extract and load JSON from LLM responses."""
+    import re
+    text_clean = text.strip()
+    
+    # 1. Try direct parsing first
+    try:
+        return json.loads(text_clean)
+    except Exception:
+        pass
+        
+    # 2. Try to find json block wrapped in markdown ```json ... ```
+    pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
+    match = re.search(pattern, text_clean)
+    if match:
+        try:
+            return json.loads(match.group(1).strip())
+        except Exception:
+            pass
+            
+    # 3. Fallback: Search for the first '{' and last '}' to extract raw JSON
+    first_curly = text_clean.find('{')
+    last_curly = text_clean.rfind('}')
+    if first_curly != -1 and last_curly != -1 and last_curly > first_curly:
+        json_candidate = text_clean[first_curly:last_curly+1]
+        try:
+            return json.loads(json_candidate)
+        except Exception:
+            pass
+            
+    raise ValueError("Could not locate a valid JSON structure in response.")
+
 def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
     # 1. Check Cache
     cache_key = (
         alert_data.get("type"),
         alert_data.get("id"),
-        alert_data.get("density"),
-        alert_data.get("current_crowd"),
         alert_data.get("status"),
         alert_data.get("severity")
     )
@@ -226,20 +256,26 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
     # Core Failover Sequence
     # A. Try Gemini
     if llm_res is None and Config.GEMINI_API_KEY:
-        try:
-            client_instance = GeminiLLMClient(Config.GEMINI_API_KEY)
-            llm_res = client_instance.generate(system_prompt, prompt, tools=[])
-        except Exception as e:
-            logger.error(f"Gemini alert generation failed: {e}. Trying Groq fallback.")
+        llm_res, success = execute_with_retry_and_circuit_breaker(
+            "gemini",
+            lambda: GeminiLLMClient(Config.GEMINI_API_KEY),
+            system_prompt,
+            prompt,
+            tools=[],
+            response_format={"type": "json_object"}
+        )
 
     # B. Try Groq
     if llm_res is None and Config.GROQ_API_KEY:
-        try:
-            from backend.app.llm_client import GroqLLMClient
-            client_instance = GroqLLMClient(Config.GROQ_API_KEY)
-            llm_res = client_instance.generate(system_prompt, prompt, tools=[])
-        except Exception as e:
-            logger.error(f"Groq alert generation failed: {e}. Falling back to Mock client.")
+        from backend.app.llm_client import GroqLLMClient
+        llm_res, success = execute_with_retry_and_circuit_breaker(
+            "groq",
+            lambda: GroqLLMClient(Config.GROQ_API_KEY),
+            system_prompt,
+            prompt,
+            tools=[],
+            response_format={"type": "json_object"}
+        )
 
     # C. Try Mock
     if llm_res is None:
@@ -248,14 +284,10 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
 
     # 3. Parse JSON response from selected LLM
     try:
-        clean_reply = llm_res.reply.strip()
-        if clean_reply.startswith("```json"):
-            clean_reply = clean_reply[7:]
-        if clean_reply.endswith("```"):
-            clean_reply = clean_reply[:-3]
-        clean_reply = clean_reply.strip()
+        raw_content = getattr(llm_res, 'reply', 'None')
+        logger.info(f"Raw alert LLM response content: {raw_content}")
         
-        data = json.loads(clean_reply)
+        data = extract_and_parse_json(raw_content)
         msg = data.get("message", fallback_msg)
         act = data.get("recommended_action", fallback_action)
         
@@ -271,105 +303,182 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
                 ALERT_CACHE[cache_key] = (msg, act)
                 return msg, act
                 
-        logger.error(f"Error parsing LLM response JSON: {e}. Using deterministic fallback.")
+        logger.error(f"Error parsing LLM response JSON: {e}. Raw response content was: {getattr(llm_res, 'reply', 'None')}. Using deterministic fallback.")
         return fallback_msg, fallback_action
+
+def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
+    """Generates alerts for a list of anomalies in a single LLM request with failover."""
+    from backend.app.llm_client import GeminiLLMClient, MockLLMClient
+    
+    # Generate fallbacks for each anomaly in list
+    fallbacks = []
+    for anomaly in anomalies_list:
+        msg, act = get_deterministic_alert_fallback(anomaly)
+        fallbacks.append({"message": msg, "recommended_action": act})
+        
+    system_prompt = (
+        "You are EktaAI, an operational intelligence engine for FIFA World Cup 2026. "
+        "You translate a list of raw stadium sensor anomalies into professional plain-language alerts "
+        "and action items. Always return response in JSON format. The response must be a JSON object "
+        "containing an 'alerts' key, which maps to a list of alert objects. Each alert object "
+        "must have exactly two keys: 'message' and 'recommended_action', corresponding order-by-order "
+        "to the list of anomalies in the prompt."
+    )
+    
+    prompt = (
+        f"List of raw anomalies to translate:\n"
+        f"{json.dumps(anomalies_list)}\n\n"
+        f"Translate each anomaly in order. Return a JSON object with keys: alerts (list of objects with message and recommended_action)."
+    )
+    
+    llm_res = None
+    
+    # A. Try Gemini
+    if Config.GEMINI_API_KEY:
+        try:
+            client_instance = GeminiLLMClient(Config.GEMINI_API_KEY)
+            llm_res = client_instance.generate(system_prompt, prompt, tools=[], response_format={"type": "json_object"})
+        except Exception as e:
+            logger.error(f"Gemini batch alert generation failed: {e}. Trying Groq fallback.")
+            
+    # B. Try Groq
+    if llm_res is None and Config.GROQ_API_KEY:
+        try:
+            from backend.app.llm_client import GroqLLMClient
+            client_instance = GroqLLMClient(Config.GROQ_API_KEY)
+            llm_res = client_instance.generate(system_prompt, prompt, tools=[], response_format={"type": "json_object"})
+        except Exception as e:
+            logger.error(f"Groq batch alert generation failed: {e}. Falling back to Mock client.")
+            
+    # C. Try Mock
+    if llm_res is None:
+        client_instance = MockLLMClient()
+        llm_res = client_instance.generate(system_prompt, prompt, tools=[])
+        
+    # Parse response
+    try:
+        raw_content = getattr(llm_res, 'reply', 'None')
+        logger.info(f"Raw batch alerts LLM response content: {raw_content}")
+        
+        parsed_data = extract_and_parse_json(raw_content)
+        alerts_list = parsed_data.get("alerts", [])
+        
+        result = []
+        for idx, anomaly in enumerate(anomalies_list):
+            if idx < len(alerts_list):
+                gen_item = alerts_list[idx]
+                msg = gen_item.get("message") or fallbacks[idx]["message"]
+                act = gen_item.get("recommended_action") or fallbacks[idx]["recommended_action"]
+                result.append({"message": msg, "recommended_action": act})
+            else:
+                result.append(fallbacks[idx])
+        return result
+    except Exception as e:
+        logger.error(f"Error parsing batch LLM response: {e}. Raw response content was: {getattr(llm_res, 'reply', 'None')}. Using deterministic fallbacks.")
+        return fallbacks
 
 # --- Operational Intelligence Alerts API ---
 
 @app.get("/api/v1/staff/alerts", response_model=List[PlainLanguageAlert])
 def get_staff_alerts():
-    alerts = []
-    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Check for high density zones
     cursor.execute("SELECT id, name, density, current_crowd FROM zones")
-    zones = cursor.fetchall()
+    zones = [dict(row) for row in cursor.fetchall()]
+    
+    cursor.execute("SELECT id, name, status FROM gates")
+    gates = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    anomalies_list = []
+    
+    # 1. Check for high density zones
     for z in zones:
         if z["density"] > 0.85:
-            alert_data = {
+            anomalies_list.append({
                 "type": "zone",
                 "id": z["id"],
                 "name": z["name"],
                 "density": z["density"],
                 "current_crowd": z["current_crowd"],
                 "severity": "critical"
-            }
-            msg, act = generate_alert_with_llm(alert_data)
-            alerts.append({
-                "id": f"alert_zone_{z['id']}",
-                "severity": "critical",
-                "message": msg,
-                "recommended_action": act
             })
         elif z["density"] > 0.70:
-            alert_data = {
+            anomalies_list.append({
                 "type": "zone",
                 "id": z["id"],
                 "name": z["name"],
                 "density": z["density"],
                 "current_crowd": z["current_crowd"],
                 "severity": "warning"
-            }
-            msg, act = generate_alert_with_llm(alert_data)
-            alerts.append({
-                "id": f"alert_zone_{z['id']}",
-                "severity": "warning",
-                "message": msg,
-                "recommended_action": act
             })
             
     # 2. Check for closed gates
-    cursor.execute("SELECT id, name, status FROM gates")
-    gates = cursor.fetchall()
     for g in gates:
         if g["status"] == "closed":
-            alert_data = {
+            anomalies_list.append({
                 "type": "gate",
                 "id": g["id"],
                 "name": g["name"],
                 "status": g["status"],
                 "severity": "warning"
-            }
-            msg, act = generate_alert_with_llm(alert_data)
-            alerts.append({
-                "id": f"alert_gate_{g['id']}",
-                "severity": "warning",
-                "message": msg,
-                "recommended_action": act
             })
         elif g["status"] == "emergency_only":
-            alert_data = {
+            anomalies_list.append({
                 "type": "gate",
                 "id": g["id"],
                 "name": g["name"],
                 "status": g["status"],
                 "severity": "critical"
-            }
-            msg, act = generate_alert_with_llm(alert_data)
-            alerts.append({
-                "id": f"alert_gate_{g['id']}",
-                "severity": "critical",
+            })
+            
+    # 3. If no anomalies, return standard operational status
+    if not anomalies_list:
+        anomalies_list.append({
+            "type": "normal",
+            "severity": "info"
+        })
+        
+    alerts_result = []
+    uncached_items = []
+    
+    # 4. Check cache
+    for anomaly in anomalies_list:
+        cache_key = (
+            anomaly.get("type"),
+            anomaly.get("id"),
+            anomaly.get("status"),
+            anomaly.get("severity")
+        )
+        
+        if cache_key in ALERT_CACHE:
+            msg, act = ALERT_CACHE[cache_key]
+            alerts_result.append({
+                "id": f"alert_{anomaly.get('type')}_{anomaly.get('id')}" if anomaly.get("type") != "normal" else "alert_normal",
+                "severity": anomaly["severity"],
+                "message": msg,
+                "recommended_action": act
+            })
+        else:
+            uncached_items.append((anomaly, cache_key))
+            
+    # 5. Process uncached items in a single batch request
+    if uncached_items:
+        batch_anomalies = [item[0] for item in uncached_items]
+        generated_results = generate_alerts_batch_with_llm(batch_anomalies)
+        
+        for (anomaly, cache_key), gen_item in zip(uncached_items, generated_results):
+            msg = gen_item["message"]
+            act = gen_item["recommended_action"]
+            ALERT_CACHE[cache_key] = (msg, act)
+            
+            alerts_result.append({
+                "id": f"alert_{anomaly.get('type')}_{anomaly.get('id')}" if anomaly.get("type") != "normal" else "alert_normal",
+                "severity": anomaly["severity"],
                 "message": msg,
                 "recommended_action": act
             })
             
-    conn.close()
-    
-    # If no alerts, return a standard operational status
-    if not alerts:
-        alert_data = {
-            "type": "normal",
-            "severity": "info"
-        }
-        msg, act = generate_alert_with_llm(alert_data)
-        alerts.append({
-            "id": "alert_normal",
-            "severity": "info",
-            "message": msg,
-            "recommended_action": act
-        })
-        
-    return alerts
+    return alerts_result
 

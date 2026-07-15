@@ -18,6 +18,10 @@ class Config:
     DATABASE_PATH = os.getenv("DATABASE_PATH", "") or str(BASE_DIR / "stadium_twin.db")
     STADIUM_FACTS_PATH = os.getenv("STADIUM_FACTS_PATH", "") or str(BASE_DIR / "backend" / "data" / "stadium_facts.json")
 
+    # Circuit breaker flags
+    GEMINI_EXHAUSTED = False
+    GROQ_EXHAUSTED = False
+
     # Rate limit settings
     RATE_LIMIT_LIMIT = int(os.getenv("RATE_LIMIT_LIMIT", "") or "5")
     RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "") or "10")  # seconds

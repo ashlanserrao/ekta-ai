@@ -33,7 +33,7 @@ class GeminiLLMClient:
         self.client = genai.Client(api_key=api_key)
         logger.info("GeminiLLMClient initialized with live API key using google.genai SDK.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None) -> LLMResult:
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None) -> LLMResult:
         logger.info("Executing live Gemini API call via new google.genai SDK.")
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
@@ -78,8 +78,56 @@ class MockLLMClient:
     def __init__(self):
         logger.info("MockLLMClient initialized.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None) -> LLMResult:
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None) -> LLMResult:
         logger.info("Executing MockLLMClient generate.")
+        
+        # 0. Check if this is an operational alert translation request
+        if "operational intelligence" in system_prompt.lower() or "alerts" in system_prompt.lower():
+            try:
+                import re
+                match = re.search(r"\[\s*\{.*\}\s*\]", user_message, re.DOTALL)
+                if match:
+                    anomalies = json.loads(match.group(0))
+                else:
+                    anomalies = json.loads(user_message)
+                    if not isinstance(anomalies, list):
+                        anomalies = [anomalies]
+            except Exception:
+                anomalies = []
+                
+            mock_alerts = []
+            for anomaly in anomalies:
+                if anomaly.get("type") == "zone":
+                    name = anomaly.get("name", "Unknown Zone")
+                    density = anomaly.get("density", 0.0)
+                    current = anomaly.get("current_crowd", 0)
+                    severity = anomaly.get("severity", "info")
+                    if severity == "critical":
+                        msg = f"[GenAI Alert] Critical crowd surge detected at {name}. Occupancy has reached {int(density*100)}% capacity ({current} fans)."
+                        act = "[GenAI Action] Immediately halt incoming ticket validation at adjacent turnstiles. Re-route arrival streams toward alternative entrances and deploy crowd control officers."
+                    else:
+                        msg = f"[GenAI Alert] Crowd density is climbing at {name}, now at {int(density*100)}%."
+                        act = "[GenAI Action] Activate secondary warning signage and instruct stewards to monitor local walkways for bottlenecks."
+                elif anomaly.get("type") == "gate":
+                    name = anomaly.get("name", "Unknown Gate")
+                    status = anomaly.get("status", "open")
+                    if status == "closed":
+                        msg = f"[GenAI Alert] Checkpoint status change: {name} is CLOSED."
+                        act = "Activate digital detour guidance screens. Direct arriving spectators to nearest open gate immediately."
+                    else:
+                        msg = f"[GenAI Alert] Access restriction: {name} has transitioned to EMERGENCY EXIT ONLY."
+                        act = "Coordinate with emergency response units and notify nearby shuttle loops to suspend drops at this gate."
+                else:
+                    msg = "[GenAI Alert] All stadium zones and gates are operating within normal parameters."
+                    act = "[GenAI Action] Maintain standard entry checkpoints monitoring."
+                
+                mock_alerts.append({
+                    "message": msg,
+                    "recommended_action": act
+                })
+            
+            return LLMResult(reply=json.dumps({"alerts": mock_alerts}), tool_calls=[])
+
         normalized_msg = user_message.lower().strip()
         tool_calls = []
         reply = ""
@@ -199,7 +247,7 @@ class GroqLLMClient:
         self.model = Config.GROQ_MODEL
         logger.info(f"GroqLLMClient initialized using model {self.model}.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None) -> LLMResult:
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None) -> LLMResult:
         logger.info(f"Executing Groq API call via httpx to model {self.model}.")
         import httpx
         
@@ -273,6 +321,9 @@ class GroqLLMClient:
             "temperature": 0.1
         }
         
+        if response_format:
+            payload["response_format"] = response_format
+            
         if tools:
             payload["tools"] = openai_tools
             payload["tool_choice"] = "auto"
