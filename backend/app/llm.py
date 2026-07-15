@@ -29,7 +29,7 @@ def is_quota_or_rate_limit_error(error_msg: str) -> bool:
         "credentials"
     ])
 
-def execute_with_retry_and_circuit_breaker(provider_name: str, client_initializer, system_prompt: str, user_message: str, tools: list, response_format: dict = None) -> tuple:
+def execute_with_retry_and_circuit_breaker(provider_name: str, client_initializer, system_prompt: str, user_message: str, tools: list, response_format: dict = None, mode: str = None) -> tuple:
     """
     Executes an LLM call with a safe 2-time retry (3 attempts total) for transient issues, 
     and immediately trips a circuit breaker on daily quota/auth errors, or after consecutive failures.
@@ -49,7 +49,7 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
         try:
             client = client_initializer()
             logger.info(f"[{provider_name.upper()}] Attempt {attempt} of {attempts}...")
-            llm_res = client.generate(system_prompt, user_message, tools, response_format=response_format)
+            llm_res = client.generate(system_prompt, user_message, tools, response_format=response_format, mode=mode)
             return llm_res, True
         except Exception as e:
             error_msg = str(e)
@@ -298,19 +298,22 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
 
     logger.info(f"Final LLM execution provider selected: {final_provider}")
 
-    # Inspect function calls to return structural tool data to the client
+    # Inspect function calls to return structural tool data to the client and collect results
     last_tool = None
     route_data = None
+    executed_results = []
     
     for call in tool_calls:
         last_tool = call.name
         args = call.args or {}
+        result_data = None
         if call.name == "get_route":
             route_res = get_route(
                 args.get("from_location", ""),
                 args.get("to_location", ""),
                 args.get("accessibility_required", False)
             )
+            result_data = route_res
             if "error" in route_res:
                 route_data = None
                 # Inject user-friendly alert inside the assistant response instead of raising ValidationErrors
@@ -318,10 +321,65 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
             else:
                 route_data = route_res
         elif call.name == "get_crowd_density":
-            # Execute to trigger side effect or queries if needed
-            get_crowd_density(args.get("zone", ""))
+            result_data = get_crowd_density(args.get("zone", ""))
         elif call.name == "get_gate_status":
-            get_gate_status()
+            result_data = get_gate_status()
+            
+        if result_data:
+            executed_results.append((call.name, result_data))
+
+    # If the response has tool calls but the reply content is empty/blank,
+    # generate a follow-up LLM response with the executed tool results.
+    if not reply.strip() and executed_results:
+        tool_results_str = "\n".join([f"Tool '{name}' returned: {json.dumps(res)}" for name, res in executed_results])
+        followup_prompt = (
+            f"The user's request is: {user_message}\n\n"
+            f"Here is the real-time data retrieved from the database to answer their request:\n"
+            f"{tool_results_str}\n\n"
+            f"Generate a professional, natural-language response based on this data."
+        )
+        
+        logger.info(f"Generating followup LLM response using provider: {final_provider}")
+        try:
+            if client is not None:
+                followup_res = client.generate(system_prompt, followup_prompt, tools=[])
+                reply = followup_res.reply
+            elif final_provider == "gemini" and Config.GEMINI_API_KEY:
+                followup_res = GeminiLLMClient(Config.GEMINI_API_KEY).generate(system_prompt, followup_prompt, tools=[])
+                reply = followup_res.reply
+            elif final_provider == "groq" and Config.GROQ_API_KEY:
+                from backend.app.llm_client import GroqLLMClient
+                followup_res = GroqLLMClient(Config.GROQ_API_KEY).generate(system_prompt, followup_prompt, tools=[])
+                reply = followup_res.reply
+        except Exception as e:
+            logger.error(f"Followup LLM response generation failed: {e}")
+
+    # Fallback to direct Python-generated natural-language reply if still empty
+    if not reply.strip() and executed_results:
+        fallback_parts = []
+        for name, res in executed_results:
+            if name == "get_crowd_density":
+                if "error" in res:
+                    fallback_parts.append(f"Unable to retrieve crowd density: {res['error']}")
+                else:
+                    fallback_parts.append(
+                        f"[STAFF OPERATIONAL BRIEF] Zone {res.get('id', 'Unknown')} ({res.get('name', 'Unknown')}) "
+                        f"is currently at {int(res.get('density', 0.0)*100)}% capacity ({res.get('current_crowd', 0)} fans)."
+                    )
+            elif name == "get_gate_status":
+                gate_lines = []
+                for gate in res:
+                    gate_lines.append(f"- {gate['name']}: {gate['status'].upper()} (Congestion: {gate['congestion_level']})")
+                fallback_parts.append("Here is the current live status of the stadium gates:\n" + "\n".join(gate_lines))
+            elif name == "get_route":
+                if "error" in res:
+                    fallback_parts.append(f"Routing failed: {res['error']}")
+                else:
+                    fallback_parts.append(
+                        f"Calculated routing path from {res['from_location']} to {res['to_location']}: "
+                        f"{' -> '.join(res['path_nodes'])}."
+                    )
+        reply = "\n\n".join(fallback_parts)
 
     return {
         "reply": reply,

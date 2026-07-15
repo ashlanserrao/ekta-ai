@@ -1,5 +1,6 @@
 import time
 import logging
+from contextlib import asynccontextmanager
 from collections import defaultdict
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,10 +19,31 @@ from backend.app.llm import query_stadium_assistant, execute_with_retry_and_circ
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
+# Startup / Shutdown Lifespan
+active_simulator = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global active_simulator
+    logger.info("Initializing database...")
+    init_db()
+    
+    logger.info("Starting Digital Twin Simulator...")
+    if active_simulator is None or not active_simulator.is_alive():
+        active_simulator = StadiumSimulator()
+        active_simulator.start()
+    
+    yield
+    
+    if active_simulator and active_simulator.is_alive():
+        logger.info("Stopping Digital Twin Simulator...")
+        active_simulator.stop()
+
 app = FastAPI(
     title="EktaAI API",
     description="GenAI-powered stadium operations assistant backend for FIFA World Cup 2026",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 from fastapi.exceptions import ResponseValidationError
@@ -71,27 +93,6 @@ class IPBasedRateLimiter:
         return False
 
 chat_limiter = IPBasedRateLimiter(limit=Config.RATE_LIMIT_LIMIT, window=Config.RATE_LIMIT_WINDOW)
-
-# Startup / Shutdown Events
-active_simulator = None
-
-@app.on_event("startup")
-def startup_event():
-    global active_simulator
-    logger.info("Initializing database...")
-    init_db()
-    
-    logger.info("Starting Digital Twin Simulator...")
-    if active_simulator is None or not active_simulator.is_alive():
-        active_simulator = StadiumSimulator()
-        active_simulator.start()
-
-@app.on_event("shutdown")
-def shutdown_event():
-    global active_simulator
-    if active_simulator and active_simulator.is_alive():
-        logger.info("Stopping Digital Twin Simulator...")
-        active_simulator.stop()
 
 # --- Health / Base ---
 @app.get("/")
@@ -269,7 +270,9 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
         alert_data.get("type"),
         alert_data.get("id"),
         alert_data.get("status"),
-        alert_data.get("severity")
+        alert_data.get("severity"),
+        alert_data.get("density"),
+        alert_data.get("current_crowd")
     )
     if cache_key in ALERT_CACHE:
         return ALERT_CACHE[cache_key]
@@ -293,7 +296,7 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
     # If client is injected directly, try running it
     if client is not None:
         try:
-            llm_res = client.generate(system_prompt, prompt, tools=[])
+            llm_res = client.generate(system_prompt, prompt, tools=[], mode="alert_translation")
         except Exception as e:
             logger.error(f"Injected client alert generation failed: {e}")
 
@@ -307,7 +310,8 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
             system_prompt,
             prompt,
             tools=[],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            mode="alert_translation"
         )
         if isinstance(result, tuple) and len(result) == 2:
             llm_res, success = result
@@ -324,7 +328,8 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
             system_prompt,
             prompt,
             tools=[],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            mode="alert_translation"
         )
         if isinstance(result, tuple) and len(result) == 2:
             llm_res, success = result
@@ -335,7 +340,7 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
     if llm_res is None:
         logger.info("Alert Translation: Selecting Mock client (Fallback)")
         client_instance = MockLLMClient()
-        llm_res = client_instance.generate(system_prompt, prompt, tools=[])
+        llm_res = client_instance.generate(system_prompt, prompt, tools=[], mode="alert_translation")
 
     # 3. Parse JSON response from selected LLM
     try:
@@ -397,7 +402,8 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
             system_prompt,
             prompt,
             tools=[],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            mode="alert_translation"
         )
         if isinstance(result, tuple) and len(result) == 2:
             llm_res, success = result
@@ -414,7 +420,8 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
             system_prompt,
             prompt,
             tools=[],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            mode="alert_translation"
         )
         if isinstance(result, tuple) and len(result) == 2:
             llm_res, success = result
@@ -425,7 +432,7 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
     if llm_res is None:
         logger.info("Batch Alerts: Selecting Mock client (Fallback)")
         client_instance = MockLLMClient()
-        llm_res = client_instance.generate(system_prompt, prompt, tools=[])
+        llm_res = client_instance.generate(system_prompt, prompt, tools=[], mode="alert_translation")
         
     # Parse response
     try:
@@ -525,7 +532,9 @@ def get_staff_alerts():
             anomaly.get("type"),
             anomaly.get("id"),
             anomaly.get("status"),
-            anomaly.get("severity")
+            anomaly.get("severity"),
+            anomaly.get("density"),
+            anomaly.get("current_crowd")
         )
         
         if cache_key in ALERT_CACHE:

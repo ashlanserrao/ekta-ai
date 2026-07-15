@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import InteractiveMap from "./InteractiveMap";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export default function StaffDashboard({ zones, alerts, gates }) {
   // Chat state - Staff

@@ -70,16 +70,35 @@ def test_chat_endpoints():
             json={"message": "Where is the main medical center?", "language": "en"}
         )
         assert fan_res.status_code == 200
-        assert "reply" in fan_res.json()
-        assert fan_res.json()["rag_used"] is True
+        fan_data = fan_res.json()
+        assert "reply" in fan_data
+        assert fan_data["rag_used"] is True
+        assert "medical" in fan_data["reply"].lower() or "first aid" in fan_data["reply"].lower() or "guidelines" in fan_data["reply"].lower()
         
-        # Test Staff Chat
+        # Test Staff Chat - Crowd Density Query
         staff_res = client.post(
             "/api/v1/chat/staff",
-            json={"message": "How is the crowd at Zone-C?"}
+            json={"message": "What is the crowd density at Zone-C?"}
         )
         assert staff_res.status_code == 200
-        assert "reply" in staff_res.json()
+        staff_data = staff_res.json()
+        assert "reply" in staff_data
+        assert "[STAFF OPERATIONAL BRIEF]" in staff_data["reply"]
+        assert "Zone-C" in staff_data["reply"]
+        assert "90%" in staff_data["reply"]
+        assert "{" not in staff_data["reply"]
+        
+        # Test Staff Chat - Gate Status Query
+        gate_res = client.post(
+            "/api/v1/chat/staff",
+            json={"message": "Is Gate 2 open or closed right now?"}
+        )
+        assert gate_res.status_code == 200
+        gate_data = gate_res.json()
+        assert "reply" in gate_data
+        assert "Gate 2" in gate_data["reply"]
+        assert "open" in gate_data["reply"].lower()
+        assert "{" not in gate_data["reply"]
 
 def test_rate_limiting():
     # Set limit low to quickly trigger limit or just hit it repeatedly

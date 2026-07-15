@@ -486,3 +486,26 @@ main {
     stroke-dashoffset: -20;
   }
 }
+
+/* --- Large Text Accessibility Mode --- */
+body.large-text {
+  font-size: 1.18rem;
+}
+body.large-text .logo-text {
+  font-size: 1.7rem;
+}
+body.large-text .logo-sub {
+  font-size: 0.95rem;
+}
+body.large-text .chat-input {
+  font-size: 1.15rem;
+}
+body.large-text .message-bubble {
+  font-size: 1.15rem;
+}
+body.large-text button {
+  font-size: 1.1rem;
+}
+body.large-text .map-legend, body.large-text .info-panel, body.large-text p {
+  font-size: 1.1rem;
+}

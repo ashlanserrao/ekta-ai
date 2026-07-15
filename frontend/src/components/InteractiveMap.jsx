@@ -77,6 +77,14 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
               className={zones.find(z => z.id === "Zone-A")?.density > 0.85 ? "pulse-zone" : "interactive-zone"}
               onMouseEnter={() => setHoveredZone("Zone-A")}
               onMouseLeave={() => setHoveredZone(null)}
+              tabIndex="0"
+              role="region"
+              aria-label={(() => {
+                const zone = zones.find(z => z.id === "Zone-A");
+                return zone ? `Zone A, North Stand: ${Math.round(zone.density * 100)}% density, ${zone.current_crowd} occupants of ${zone.capacity} capacity.` : "Zone A, North Stand";
+              })()}
+              onFocus={() => setHoveredZone("Zone-A")}
+              onBlur={() => setHoveredZone(null)}
             />
 
             {/* Zone-B (East Stand - Right) */}
@@ -88,6 +96,14 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
               className={zones.find(z => z.id === "Zone-B")?.density > 0.85 ? "pulse-zone" : "interactive-zone"}
               onMouseEnter={() => setHoveredZone("Zone-B")}
               onMouseLeave={() => setHoveredZone(null)}
+              tabIndex="0"
+              role="region"
+              aria-label={(() => {
+                const zone = zones.find(z => z.id === "Zone-B");
+                return zone ? `Zone B, East Stand: ${Math.round(zone.density * 100)}% density, ${zone.current_crowd} occupants of ${zone.capacity} capacity.` : "Zone B, East Stand";
+              })()}
+              onFocus={() => setHoveredZone("Zone-B")}
+              onBlur={() => setHoveredZone(null)}
             />
 
             {/* Zone-C (South Stand - Bottom) */}
@@ -99,6 +115,14 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
               className={zones.find(z => z.id === "Zone-C")?.density > 0.85 ? "pulse-zone" : "interactive-zone"}
               onMouseEnter={() => setHoveredZone("Zone-C")}
               onMouseLeave={() => setHoveredZone(null)}
+              tabIndex="0"
+              role="region"
+              aria-label={(() => {
+                const zone = zones.find(z => z.id === "Zone-C");
+                return zone ? `Zone C, South Stand: ${Math.round(zone.density * 100)}% density, ${zone.current_crowd} occupants of ${zone.capacity} capacity.` : "Zone C, South Stand";
+              })()}
+              onFocus={() => setHoveredZone("Zone-C")}
+              onBlur={() => setHoveredZone(null)}
             />
 
             {/* Zone-D (West Stand - Left) */}
@@ -110,6 +134,14 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
               className={zones.find(z => z.id === "Zone-D")?.density > 0.85 ? "pulse-zone" : "interactive-zone"}
               onMouseEnter={() => setHoveredZone("Zone-D")}
               onMouseLeave={() => setHoveredZone(null)}
+              tabIndex="0"
+              role="region"
+              aria-label={(() => {
+                const zone = zones.find(z => z.id === "Zone-D");
+                return zone ? `Zone D, West Stand: ${Math.round(zone.density * 100)}% density, ${zone.current_crowd} occupants of ${zone.capacity} capacity.` : "Zone D, West Stand";
+              })()}
+              onFocus={() => setHoveredZone("Zone-D")}
+              onBlur={() => setHoveredZone(null)}
             />
           </g>
 
@@ -181,7 +213,12 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
             if (!coord) return null;
             const color = getCongestionColor(gate.congestion_level);
             return (
-              <g key={gate.id}>
+              <g 
+                key={gate.id}
+                tabIndex="0"
+                role="region"
+                aria-label={`Gate ${gate.name}: status is ${gate.status}, congestion level is ${gate.congestion_level}.`}
+              >
                 <circle 
                   cx={coord.x} 
                   cy={coord.y} 

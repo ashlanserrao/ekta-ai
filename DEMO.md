@@ -81,3 +81,8 @@ Switch to the **Staff Dashboard** view in the top navigation and query the staff
 ## 💾 Database Operations
 - **`stadium_twin.db`**: This SQLite database is pre-seeded with nodes, zones, gates, and routes.
 - **Regeneration**: You can delete `stadium_twin.db` at any time to clean up or reset simulation state. It will be recreated and re-seeded automatically by `init_db()` upon starting the FastAPI application.
+
+---
+
+## 🔒 Security & Demo Limitations Note
+- **Staff Portal Authentication**: The Staff Dashboard and staff chat endpoints do not require authentication or rate limiting in this version. This is a deliberate demo design decision to ensure judges can easily evaluate operational intelligence and mock workflows without managing staff credentials or encountering rate limit blockages.

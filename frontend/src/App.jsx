@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import FanAssistant from "./components/FanAssistant";
 import StaffDashboard from "./components/StaffDashboard";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export default function App() {
   // View mode: 'fan' or 'staff'
@@ -10,6 +10,9 @@ export default function App() {
   
   // Theme state
   const [highContrast, setHighContrast] = useState(false);
+  
+  // Accessibility text size state
+  const [largeText, setLargeText] = useState(false);
   
   // Live Stadium Data (polled every 3 seconds)
   const [gates, setGates] = useState([]);
@@ -27,10 +30,14 @@ export default function App() {
           setZones(data.zones);
         }
         
-        const alertsRes = await fetch(`${API_BASE}/api/v1/staff/alerts`);
-        if (alertsRes.ok) {
-          const data = await alertsRes.json();
-          setAlerts(data);
+        if (viewMode === "staff") {
+          const alertsRes = await fetch(`${API_BASE}/api/v1/staff/alerts`);
+          if (alertsRes.ok) {
+            const data = await alertsRes.json();
+            setAlerts(data);
+          }
+        } else {
+          setAlerts([]); // Clear alerts when not in staff mode
         }
       } catch (err) {
         console.error("Error polling stadium state:", err);
@@ -40,7 +47,7 @@ export default function App() {
     fetchData(); // Initial load
     const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [viewMode]);
 
   // Apply accessibility high-contrast theme
   useEffect(() => {
@@ -50,6 +57,15 @@ export default function App() {
       document.body.classList.remove("high-contrast");
     }
   }, [highContrast]);
+
+  // Apply accessibility text size theme
+  useEffect(() => {
+    if (largeText) {
+      document.body.classList.add("large-text");
+    } else {
+      document.body.classList.remove("large-text");
+    }
+  }, [largeText]);
 
   return (
     <div>
@@ -80,6 +96,15 @@ export default function App() {
             Staff Portal
           </button>
           
+          <button 
+            className="btn-secondary"
+            onClick={() => setLargeText(!largeText)}
+            aria-label={largeText ? "Disable large text size" : "Enable large text size"}
+            style={{ border: largeText ? "2px solid var(--accent-color)" : "1px solid var(--border-color)" }}
+          >
+            🔍 {largeText ? "Normal Text" : "Large Text"}
+          </button>
+
           <button 
             className="btn-secondary"
             onClick={() => setHighContrast(!highContrast)}

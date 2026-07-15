@@ -33,7 +33,7 @@ class GeminiLLMClient:
         self.client = genai.Client(api_key=api_key)
         logger.info("GeminiLLMClient initialized with live API key using google.genai SDK.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None) -> LLMResult:
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
         logger.info("Executing live Gemini API call via new google.genai SDK.")
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
@@ -78,22 +78,39 @@ class MockLLMClient:
     def __init__(self):
         logger.info("MockLLMClient initialized.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None) -> LLMResult:
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
         logger.info("Executing MockLLMClient generate.")
         
         # 0. Check if this is an operational alert translation request
-        if "operational intelligence" in system_prompt.lower() or "alerts" in system_prompt.lower():
-            try:
-                import re
-                match = re.search(r"\[\s*\{.*\}\s*\]", user_message, re.DOTALL)
-                if match:
-                    anomalies = json.loads(match.group(0))
-                else:
+        if mode == "alert_translation":
+            import re
+            list_match = re.search(r"\[\s*\{.*\}\s*\]", user_message, re.DOTALL)
+            anomalies = []
+            is_batch = False
+            if list_match:
+                try:
+                    anomalies = json.loads(list_match.group(0))
+                    is_batch = True
+                except Exception:
+                    pass
+            
+            if not anomalies:
+                dict_match = re.search(r"\{.*\}", user_message, re.DOTALL)
+                if dict_match:
+                    try:
+                        anomalies = [json.loads(dict_match.group(0))]
+                    except Exception:
+                        pass
+            
+            if not anomalies:
+                try:
                     anomalies = json.loads(user_message)
                     if not isinstance(anomalies, list):
                         anomalies = [anomalies]
-            except Exception:
-                anomalies = []
+                    else:
+                        is_batch = True
+                except Exception:
+                    anomalies = []
                 
             mock_alerts = []
             for anomaly in anomalies:
@@ -126,7 +143,16 @@ class MockLLMClient:
                     "recommended_action": act
                 })
             
-            return LLMResult(reply=json.dumps({"alerts": mock_alerts}), tool_calls=[])
+            if is_batch:
+                return LLMResult(reply=json.dumps({"alerts": mock_alerts}), tool_calls=[])
+            else:
+                if mock_alerts:
+                    return LLMResult(reply=json.dumps(mock_alerts[0]), tool_calls=[])
+                else:
+                    return LLMResult(reply=json.dumps({
+                        "message": "[GenAI Alert] All stadium zones and gates are operating within normal parameters.",
+                        "recommended_action": "[GenAI Action] Maintain standard entry checkpoints monitoring."
+                    }), tool_calls=[])
 
         normalized_msg = user_message.lower().strip()
         tool_calls = []
@@ -251,7 +277,7 @@ class GroqLLMClient:
         self.model = Config.GROQ_MODEL
         logger.info(f"GroqLLMClient initialized using model {self.model}.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None) -> LLMResult:
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
         logger.info(f"Executing Groq API call via httpx to model {self.model}.")
         import httpx
         

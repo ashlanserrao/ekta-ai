@@ -68,7 +68,7 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 
 ## Non-Functional Qualities
 
-- **Security**: Tightened CORS configurations restricting origins to `http://localhost:5173`, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables.
+- **Security**: Tightened CORS configurations restricting origins to `http://localhost:5173`, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. *Note: The Staff Portal features no authentication or rate limiting as a known demo limitation to facilitate seamless evaluation by judges.*
 - **Accessibility**: Built with semantic HTML (headers, buttons, main, labels), high-contrast accessibility mode, text size optimization, keyboard navigation support, and voice recognition/synthesis.
 - **Testing**: Includes full unit tests for API, routing graph, and simulator routines, plus an automated eval script verifying 15 bilingual/tool-calling prompts.
 

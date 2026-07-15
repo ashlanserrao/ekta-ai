@@ -142,6 +142,22 @@ def run_evaluation():
             "expected_tool": "get_route",
             "desc": "Spanish route planning with accessibility check",
             "lang": "es"
+        },
+        {
+            "id": 16,
+            "prompt": "What is the crowd density at Zone-C?",
+            "is_staff": True,
+            "expected_tool": "get_crowd_density",
+            "desc": "Staff query for crowd density at Zone-C",
+            "lang": "en"
+        },
+        {
+            "id": 17,
+            "prompt": "Is Gate 2 open or closed right now?",
+            "is_staff": True,
+            "expected_tool": "get_gate_status",
+            "desc": "Staff query for Gate 2 status",
+            "lang": "en"
         }
     ]
     
@@ -152,7 +168,7 @@ def run_evaluation():
     
     from backend.app.llm_client import MockLLMClient
     print("\nLOG: Run is explicitly using MockLLMClient (Test double)")
-
+ 
     for case in test_cases:
         res = query_stadium_assistant(case["prompt"], is_staff=case["is_staff"], client=MockLLMClient())
         
@@ -169,7 +185,12 @@ def run_evaluation():
             spanish_words = ["el", "la", "en", "para", "los", "las", "con", "he", "trazado", "centro", "baño", "puerta"]
             correct_lang = any(word in reply.lower() for word in spanish_words)
             
-        is_sane = has_content and correct_tool and correct_lang
+        is_staff_reply_sane = True
+        if case["is_staff"]:
+            # Ensure staff replies do not contain JSON format/empty alerts object
+            is_staff_reply_sane = "{\"alerts\"" not in reply
+            
+        is_sane = has_content and correct_tool and correct_lang and is_staff_reply_sane
         
         status_str = "PASS" if is_sane else "FAIL"
         if is_sane:
@@ -181,7 +202,7 @@ def run_evaluation():
         
         if not is_sane:
             # Print error detail to diagnose
-            print(f"    --> Error Detail: Content? {has_content}, Tool Match? {correct_tool} (exp: {case['expected_tool']}, got: {tool_called}), Lang Match? {correct_lang}")
+            print(f"    --> Error Detail: Content? {has_content}, Tool Match? {correct_tool} (exp: {case['expected_tool']}, got: {tool_called}), Lang Match? {correct_lang}, Staff Sane? {is_staff_reply_sane}")
             print(f"    --> Reply: {reply[:120]}...")
             
     print("-" * 105)
