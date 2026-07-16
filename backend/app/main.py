@@ -14,6 +14,8 @@ from backend.app.models import (
     StadiumStatus, GateStatus, ZoneStatus, PlainLanguageAlert
 )
 from backend.app.llm import query_stadium_assistant, execute_with_retry_and_circuit_breaker
+from backend.app.auth import get_current_staff_user, verify_passcode, create_access_token, StaffLoginRequest
+from fastapi import Depends
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -93,11 +95,24 @@ class IPBasedRateLimiter:
         return False
 
 chat_limiter = IPBasedRateLimiter(limit=Config.RATE_LIMIT_LIMIT, window=Config.RATE_LIMIT_WINDOW)
+staff_limiter = IPBasedRateLimiter(limit=30, window=10)
 
 # --- Health / Base ---
 @app.get("/")
 def read_root():
     return {"app": "EktaAI API", "status": "healthy", "version": "1.0.0"}
+
+# --- Authentication API ---
+
+@app.post("/api/v1/auth/staff/login")
+def staff_login(request: StaffLoginRequest):
+    if not verify_passcode(request.passcode):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid passcode"
+        )
+    token = create_access_token(data={"sub": "staff"})
+    return {"token": token}
 
 # --- Stadium State API ---
 
@@ -174,7 +189,19 @@ async def chat_fan(request: FanChatRequest, req: Request):
 # --- Staff Dashboard Chat API ---
 
 @app.post("/api/v1/chat/staff", response_model=ChatResponse)
-async def chat_staff(request: StaffChatRequest):
+async def chat_staff(
+    request: StaffChatRequest,
+    req: Request,
+    current_user: dict = Depends(get_current_staff_user)
+):
+    # Rate Limiting
+    client_ip = req.client.host if req.client else "unknown"
+    if staff_limiter.is_rate_limited(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Limit is 30 per 10 seconds."
+        )
+
     # Security: Sanitization & Input Validation
     if not request.message or not request.message.strip():
         raise HTTPException(
@@ -459,7 +486,18 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
 # --- Operational Intelligence Alerts API ---
 
 @app.get("/api/v1/staff/alerts", response_model=List[PlainLanguageAlert])
-def get_staff_alerts():
+def get_staff_alerts(
+    req: Request,
+    current_user: dict = Depends(get_current_staff_user)
+):
+    # Rate Limiting
+    client_ip = req.client.host if req.client else "unknown"
+    if staff_limiter.is_rate_limited(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Limit is 30 per 10 seconds."
+        )
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()

@@ -3,7 +3,7 @@ import InteractiveMap from "./InteractiveMap";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
-export default function StaffDashboard({ zones, alerts, gates }) {
+export default function StaffDashboard({ zones, alerts, gates, token, onLogout }) {
   // Chat state - Staff
   const [staffMessages, setStaffMessages] = useState([
     { sender: "bot", text: "Operations Intelligence Portal Active. Ask about crowd densities, gates status, or incident mitigations." }
@@ -31,13 +31,21 @@ export default function StaffDashboard({ zones, alerts, gates }) {
     try {
       const res = await fetch(`${API_BASE}/api/v1/chat/staff`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ message: userMsg })
       });
       
       if (res.ok) {
         const data = await res.json();
         setStaffMessages(prev => [...prev, { sender: "bot", text: data.reply }]);
+      } else if (res.status === 401) {
+        setStaffMessages(prev => [...prev, { sender: "bot", text: "Session expired or unauthorized. Logging out..." }]);
+        setTimeout(() => {
+          onLogout();
+        }, 1500);
       } else {
         setStaffMessages(prev => [...prev, { sender: "bot", text: "Error fetching operations details." }]);
       }

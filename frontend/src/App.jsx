@@ -18,6 +18,14 @@ export default function App() {
   const [gates, setGates] = useState([]);
   const [zones, setZones] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  
+  // JWT Token state (loaded strictly from sessionStorage)
+  const [token, setToken] = useState(() => sessionStorage.getItem("staff_token") || "");
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("staff_token");
+    setToken("");
+  };
 
   // Fetch Stadium Data (Poll)
   useEffect(() => {
@@ -30,14 +38,20 @@ export default function App() {
           setZones(data.zones);
         }
         
-        if (viewMode === "staff") {
-          const alertsRes = await fetch(`${API_BASE}/api/v1/staff/alerts`);
+        if (viewMode === "staff" && token) {
+          const alertsRes = await fetch(`${API_BASE}/api/v1/staff/alerts`, {
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
           if (alertsRes.ok) {
             const data = await alertsRes.json();
             setAlerts(data);
+          } else if (alertsRes.status === 401) {
+            handleLogout();
           }
         } else {
-          setAlerts([]); // Clear alerts when not in staff mode
+          setAlerts([]); // Clear alerts when not in staff mode or not logged in
         }
       } catch (err) {
         console.error("Error polling stadium state:", err);
@@ -47,7 +61,7 @@ export default function App() {
     fetchData(); // Initial load
     const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
-  }, [viewMode]);
+  }, [viewMode, token]);
 
   // Apply accessibility high-contrast theme
   useEffect(() => {
@@ -96,6 +110,17 @@ export default function App() {
             Staff Portal
           </button>
           
+          {viewMode === "staff" && token && (
+            <button 
+              className="btn-secondary"
+              onClick={handleLogout}
+              aria-label="Log out of Staff Portal"
+              style={{ background: "rgba(239, 68, 68, 0.1)", borderColor: "rgba(239, 68, 68, 0.2)", color: "var(--color-high)" }}
+            >
+              Log Out
+            </button>
+          )}
+
           <button 
             className="btn-secondary"
             onClick={() => setLargeText(!largeText)}
@@ -120,10 +145,115 @@ export default function App() {
       <main role="main">
         {viewMode === "fan" ? (
           <FanAssistant gates={gates} zones={zones} />
+        ) : token ? (
+          <StaffDashboard zones={zones} alerts={alerts} gates={gates} token={token} onLogout={handleLogout} />
         ) : (
-          <StaffDashboard zones={zones} alerts={alerts} gates={gates} />
+          <StaffLogin onLoginSuccess={(newToken) => {
+            sessionStorage.setItem("staff_token", newToken);
+            setToken(newToken);
+          }} />
         )}
       </main>
+    </div>
+  );
+}
+
+function StaffLogin({ onLoginSuccess }) {
+  const [passcode, setPasscode] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!passcode.trim()) return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/staff/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        onLoginSuccess(data.token);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.detail || "Authentication failed. Invalid passcode.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Network connection issue. Please verify backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh", padding: "1rem" }}>
+      <div className="glass-panel" style={{ padding: "2.5rem", maxWidth: "450px", width: "100%", textAlign: "center", border: "1px solid rgba(255,255,255,0.12)" }}>
+        <div style={{
+          display: "inline-block",
+          background: "linear-gradient(135deg, var(--accent-color), var(--accent-secondary))",
+          color: "white",
+          borderRadius: "12px",
+          padding: "0.75rem",
+          marginBottom: "1.5rem",
+          fontSize: "2rem"
+        }}>
+          🔐
+        </div>
+        <h2 style={{ fontSize: "1.75rem", marginBottom: "0.5rem", fontWeight: "700", background: "linear-gradient(135deg, #ffffff, var(--text-secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          Staff Access Gate
+        </h2>
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "2rem" }}>
+          Please enter the passcode to access the operations intelligence dashboard.
+        </p>
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div style={{ textAlign: "left" }}>
+            <label htmlFor="passcode-input" style={{ fontSize: "0.8rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: "0.5rem", fontWeight: "600" }}>
+              Passcode
+            </label>
+            <input
+              id="passcode-input"
+              type="password"
+              className="chat-input"
+              placeholder="••••••••"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              style={{ width: "100%", padding: "0.85rem 1.2rem", fontSize: "1rem", borderRadius: "10px" }}
+              disabled={loading}
+              autoFocus
+            />
+          </div>
+
+          {error && (
+            <div style={{
+              background: "rgba(239, 68, 68, 0.1)",
+              border: "1px solid rgba(239, 68, 68, 0.2)",
+              color: "var(--color-high)",
+              padding: "0.75rem 1rem",
+              borderRadius: "8px",
+              fontSize: "0.85rem",
+              textAlign: "left"
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="btn-primary"
+            style={{ width: "100%", display: "flex", justifyContent: "center", padding: "0.85rem", borderRadius: "10px", marginTop: "0.5rem", fontSize: "1rem" }}
+            disabled={loading || !passcode.trim()}
+          >
+            {loading ? "Verifying..." : "Authenticate"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

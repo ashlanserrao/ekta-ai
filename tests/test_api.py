@@ -55,7 +55,16 @@ def test_gates_and_zones_endpoints():
 
 def test_staff_alerts():
     with TestClient(app) as client:
-        response = client.get("/api/v1/staff/alerts")
+        # Authenticate first
+        login_res = client.post(
+            "/api/v1/auth/staff/login",
+            json={"passcode": Config.STAFF_PASSCODE}
+        )
+        assert login_res.status_code == 200
+        token = login_res.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = client.get("/api/v1/staff/alerts", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert len(data) > 0
@@ -75,10 +84,20 @@ def test_chat_endpoints():
         assert fan_data["rag_used"] is True
         assert "medical" in fan_data["reply"].lower() or "first aid" in fan_data["reply"].lower() or "guidelines" in fan_data["reply"].lower()
         
+        # Authenticate for Staff Chat
+        login_res = client.post(
+            "/api/v1/auth/staff/login",
+            json={"passcode": Config.STAFF_PASSCODE}
+        )
+        assert login_res.status_code == 200
+        token = login_res.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
         # Test Staff Chat - Crowd Density Query
         staff_res = client.post(
             "/api/v1/chat/staff",
-            json={"message": "What is the crowd density at Zone-C?"}
+            json={"message": "What is the crowd density at Zone-C?"},
+            headers=headers
         )
         assert staff_res.status_code == 200
         staff_data = staff_res.json()
@@ -91,7 +110,8 @@ def test_chat_endpoints():
         # Test Staff Chat - Gate Status Query
         gate_res = client.post(
             "/api/v1/chat/staff",
-            json={"message": "Is Gate 2 open or closed right now?"}
+            json={"message": "Is Gate 2 open or closed right now?"},
+            headers=headers
         )
         assert gate_res.status_code == 200
         gate_data = gate_res.json()

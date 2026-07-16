@@ -28,3 +28,5 @@ class Config:
 
     # Security
     ALLOWED_ORIGINS = (os.getenv("ALLOWED_ORIGINS", "") or "http://localhost:5173").split(",")
+    STAFF_PASSCODE = os.getenv("STAFF_PASSCODE", "") or "fifa2026"
+    JWT_SECRET = os.getenv("JWT_SECRET", "") or "supersecretjwtkey"
