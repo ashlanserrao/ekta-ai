@@ -1,15 +1,13 @@
-import os
 import json
 import logging
 import re
 import time
-from backend.app.config import Config
-from backend.app.database import get_db_connection
+from backend.app.config import settings
 from backend.app.rag import get_rag
+from backend.app.llm_client import GeminiLLMClient, MockLLMClient, LLMResult, ToolCall
+from backend.app.tools import get_crowd_density, get_gate_status, get_route
 
-logger = logging.getLogger("llm")
-
-from backend.app.llm_client import GeminiLLMClient, MockLLMClient, ToolCall, LLMResult
+logger = logging.getLogger("orchestrator")
 
 def is_quota_or_rate_limit_error(error_msg: str) -> bool:
     """Helper to detect quota exhaustion, rate limits, or auth errors."""
@@ -35,10 +33,10 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
     and immediately trips a circuit breaker on daily quota/auth errors, or after consecutive failures.
     Returns: (LLMResult or None, success boolean)
     """
-    if provider_name == "gemini" and Config.GEMINI_EXHAUSTED:
+    if provider_name == "gemini" and settings.GEMINI_EXHAUSTED:
         logger.info("Gemini circuit breaker is active. Skipping Gemini.")
         return None, False
-    if provider_name == "groq" and Config.GROQ_EXHAUSTED:
+    if provider_name == "groq" and settings.GROQ_EXHAUSTED:
         logger.info("Groq circuit breaker is active. Skipping Groq.")
         return None, False
         
@@ -58,9 +56,9 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
             if is_quota_or_rate_limit_error(error_msg):
                 logger.warning(f"[{provider_name.upper()}] Quota/Rate Limit/Auth error detected! Tripping circuit breaker immediately.")
                 if provider_name == "gemini":
-                    Config.GEMINI_EXHAUSTED = True
+                    settings.GEMINI_EXHAUSTED = True
                 elif provider_name == "groq":
-                    Config.GROQ_EXHAUSTED = True
+                    settings.GROQ_EXHAUSTED = True
                 break
                 
             if attempt < attempts:
@@ -70,118 +68,11 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
             else:
                 logger.warning(f"[{provider_name.upper()}] Failed all {attempts} attempts. Tripping circuit breaker for safety.")
                 if provider_name == "gemini":
-                    Config.GEMINI_EXHAUSTED = True
+                    settings.GEMINI_EXHAUSTED = True
                 elif provider_name == "groq":
-                    Config.GROQ_EXHAUSTED = True
+                    settings.GROQ_EXHAUSTED = True
                 
     return None, False
-
-# --- Define Python Tool Functions ---
-
-def get_crowd_density(zone: str) -> dict:
-    """
-    Gets the current crowd density and capacity information for a specific stadium zone or concourse.
-    :param zone: The zone ID (e.g. 'Zone-A', 'Zone-B', 'Zone-C') or zone name.
-    """
-    if not zone:
-        return {"error": "Zone name or ID must be provided. Available: Zone-A, Zone-B, Zone-C, Zone-D, Zone-VIP"}
-        
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, name, capacity, current_crowd, density FROM zones WHERE id = ? OR name LIKE ?",
-            (zone, f"%{zone}%")
-        )
-        row = cursor.fetchone()
-        conn.close()
-        if row:
-            return dict(row)
-        return {"error": f"Zone '{zone}' not found. Available: Zone-A, Zone-B, Zone-C, Zone-D, Zone-VIP"}
-    except Exception as e:
-        logger.error(f"Database error in get_crowd_density: {e}")
-        return {"error": "Unable to retrieve zone details at this time."}
-
-def get_gate_status() -> list:
-    """
-    Gets the status (open/closed) and congestion level of all stadium gates.
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name, status, congestion_level, zone_id FROM gates")
-        rows = cursor.fetchall()
-        conn.close()
-        return [dict(row) for row in rows]
-    except Exception as e:
-        logger.error(f"Database error in get_gate_status: {e}")
-        return []
-
-def get_route(from_location: str, to_location: str, accessibility_required: bool = False) -> dict:
-    """
-    Retrieves the routing path between two locations, filtering for wheelchair accessibility if required.
-    :param from_location: Start point (e.g., 'Gate 1', 'Gate 2')
-    :param to_location: Destination point (e.g., 'Section 102', 'Section 204')
-    :param accessibility_required: True if step-free accessible route is needed.
-    """
-    if not from_location or not to_location:
-        return {"error": "Both start location (from_location) and destination (to_location) must be provided."}
-        
-    from backend.app.routing import find_path
-    
-    def resolve_node_name(query: str) -> str:
-        if not query:
-            return ""
-        
-        def normalize(s: str) -> str:
-            return "".join(c for c in s.lower() if c.isalnum())
-            
-        q_norm = normalize(query)
-        if not q_norm:
-            return query
-            
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM nodes")
-            nodes = [r["id"] for r in cursor.fetchall()]
-            conn.close()
-        except Exception as e:
-            logger.error(f"Database error in resolve_node_name: {e}")
-            return query
-            
-        # 1. Check exact normalized match
-        for node in nodes:
-            if normalize(node) == q_norm:
-                return node
-                
-        # 2. Check substring normalized match
-        for node in nodes:
-            n_norm = normalize(node)
-            if q_norm in n_norm or n_norm in q_norm:
-                return node
-                
-        return query
-        
-    resolved_from = resolve_node_name(from_location)
-    resolved_to = resolve_node_name(to_location)
-    
-    try:
-        path = find_path(resolved_from, resolved_to, accessibility_required)
-    except Exception as e:
-        logger.error(f"Error computing path in find_path: {e}")
-        return {"error": "Unable to calculate route path at this time."}
-        
-    if not path:
-        return {"error": f"No route found from {from_location} to {to_location}."}
-        
-    return {
-        "id": f"route_{resolved_from.replace(' ', '_')}_{resolved_to.replace(' ', '_')}_{'acc' if accessibility_required else 'std'}",
-        "from_location": resolved_from,
-        "to_location": resolved_to,
-        "path_nodes": path,
-        "is_accessible": 1 if accessibility_required else 0
-    }
 
 # Tool mapping dict for execution
 tool_map = {
@@ -189,8 +80,6 @@ tool_map = {
     "get_gate_status": get_gate_status,
     "get_route": get_route
 }
-
-# --- Core LLM Orchestrator ---
 
 def query_stadium_assistant(user_message: str, is_staff: bool = False, client=None) -> dict:
     """
@@ -223,7 +112,7 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
             "If they ask for directions or routes, you MUST invoke get_route tool. Always check if they mention 'wheelchair', 'stroller', 'accessible', or 'limited mobility' and set accessibility_required=True.\n"
             "If you generate a route, tell them in your text reply that you have loaded the route map for them."
         )
-
+ 
     llm_res = None
     reply = ""
     tool_calls = []
@@ -243,11 +132,11 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
     final_provider = "mock"
 
     # 1. Try Gemini
-    if llm_res is None and Config.GEMINI_API_KEY:
+    if llm_res is None and settings.GEMINI_API_KEY:
         logger.info("Attempting LLM query with Gemini provider.")
         result = execute_with_retry_and_circuit_breaker(
             "gemini",
-            lambda: GeminiLLMClient(Config.GEMINI_API_KEY),
+            lambda: GeminiLLMClient(settings.GEMINI_API_KEY),
             system_prompt,
             user_message,
             tools_list
@@ -265,12 +154,12 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
             logger.warning("Gemini failed or rate-limited. Falling back in pipeline.")
 
     # 2. Try Groq
-    if llm_res is None and Config.GROQ_API_KEY:
+    if llm_res is None and settings.GROQ_API_KEY:
         logger.info("Attempting LLM query with Groq provider.")
         from backend.app.llm_client import GroqLLMClient
         result = execute_with_retry_and_circuit_breaker(
             "groq",
-            lambda: GroqLLMClient(Config.GROQ_API_KEY),
+            lambda: GroqLLMClient(settings.GROQ_API_KEY),
             system_prompt,
             user_message,
             tools_list
@@ -344,12 +233,12 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
             if client is not None:
                 followup_res = client.generate(system_prompt, followup_prompt, tools=[])
                 reply = followup_res.reply
-            elif final_provider == "gemini" and Config.GEMINI_API_KEY:
-                followup_res = GeminiLLMClient(Config.GEMINI_API_KEY).generate(system_prompt, followup_prompt, tools=[])
+            elif final_provider == "gemini" and settings.GEMINI_API_KEY:
+                followup_res = GeminiLLMClient(settings.GEMINI_API_KEY).generate(system_prompt, followup_prompt, tools=[])
                 reply = followup_res.reply
-            elif final_provider == "groq" and Config.GROQ_API_KEY:
+            elif final_provider == "groq" and settings.GROQ_API_KEY:
                 from backend.app.llm_client import GroqLLMClient
-                followup_res = GroqLLMClient(Config.GROQ_API_KEY).generate(system_prompt, followup_prompt, tools=[])
+                followup_res = GroqLLMClient(settings.GROQ_API_KEY).generate(system_prompt, followup_prompt, tools=[])
                 reply = followup_res.reply
         except Exception as e:
             logger.error(f"Followup LLM response generation failed: {e}")
@@ -387,4 +276,3 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
         "route": route_data,
         "rag_used": len(rag_results) > 0
     }
-

@@ -1,7 +1,8 @@
 import pytest
 import time
 from fastapi.testclient import TestClient
-from backend.app.main import app, chat_limiter
+from backend.app.main import app
+from backend.app.middleware.rate_limit import chat_limiter
 from backend.app.database import init_db, get_db_connection
 from backend.app.config import Config
 from backend.app.llm_client import MockLLMClient
@@ -14,16 +15,16 @@ def setup_test_db():
 
 @pytest.fixture(autouse=True)
 def inject_mock_client():
-    import backend.app.main
-    original_query = backend.app.main.query_stadium_assistant
+    import backend.app.routers.chat
+    original_query = backend.app.routers.chat.query_stadium_assistant
     
     def mock_query(user_message, is_staff=False, client=None):
         print(f"\n[TESTING - API] Injecting MockLLMClient for user_message='{user_message}' (is_staff={is_staff})")
         return original_query(user_message, is_staff=is_staff, client=MockLLMClient())
         
-    backend.app.main.query_stadium_assistant = mock_query
+    backend.app.routers.chat.query_stadium_assistant = mock_query
     yield
-    backend.app.main.query_stadium_assistant = original_query
+    backend.app.routers.chat.query_stadium_assistant = original_query
 
 def test_root_endpoint():
     with TestClient(app) as client:

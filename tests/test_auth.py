@@ -3,7 +3,8 @@ import jwt
 import datetime
 import hmac
 from fastapi.testclient import TestClient
-from backend.app.main import app, staff_limiter
+from backend.app.main import app
+from backend.app.middleware.rate_limit import staff_limiter
 from backend.app.config import Config
 
 @pytest.fixture(autouse=True)
@@ -89,9 +90,9 @@ def test_protected_routes_valid_token():
         headers = {"Authorization": f"Bearer {token}"}
         
         # Inject Mock LLM Client to prevent querying external APIs during tests
-        import backend.app.main
-        original_query = backend.app.main.query_stadium_assistant
-        backend.app.main.query_stadium_assistant = lambda msg, is_staff, client=None: {"reply": "Mock reply"}
+        import backend.app.routers.chat
+        original_query = backend.app.routers.chat.query_stadium_assistant
+        backend.app.routers.chat.query_stadium_assistant = lambda msg, is_staff, client=None: {"reply": "Mock reply"}
         
         try:
             # Check chat route
@@ -107,7 +108,7 @@ def test_protected_routes_valid_token():
             alerts_res = client.get("/api/v1/staff/alerts", headers=headers)
             assert alerts_res.status_code == 200
         finally:
-            backend.app.main.query_stadium_assistant = original_query
+            backend.app.routers.chat.query_stadium_assistant = original_query
 
 def test_staff_rate_limiting():
     # The staff rate limit is 30 requests per 10 seconds.

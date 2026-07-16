@@ -75,6 +75,3 @@ class StadiumSimulator(threading.Thread):
             
         conn.commit()
         conn.close()
-
-# Singleton instance
-simulator_instance = StadiumSimulator()
