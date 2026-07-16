@@ -20,6 +20,7 @@ class ChatResponse(BaseModel):
     tool_called: Optional[str] = None
     route: Optional[RouteInfo] = None
     rag_used: bool = False
+    provider: Optional[str] = None
 
 class GateStatus(BaseModel):
     id: str

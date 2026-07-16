@@ -33,11 +33,8 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
     and immediately trips a circuit breaker on daily quota/auth errors, or after consecutive failures.
     Returns: (LLMResult or None, success boolean)
     """
-    if provider_name == "gemini" and settings.GEMINI_EXHAUSTED:
-        logger.info("Gemini circuit breaker is active. Skipping Gemini.")
-        return None, False
-    if provider_name == "groq" and settings.GROQ_EXHAUSTED:
-        logger.info("Groq circuit breaker is active. Skipping Groq.")
+    if settings.is_exhausted(provider_name):
+        logger.info(f"{provider_name.capitalize()} circuit breaker is active. Skipping {provider_name.capitalize()}.")
         return None, False
         
     attempts = 3
@@ -55,10 +52,7 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
             
             if is_quota_or_rate_limit_error(error_msg):
                 logger.warning(f"[{provider_name.upper()}] Quota/Rate Limit/Auth error detected! Tripping circuit breaker immediately.")
-                if provider_name == "gemini":
-                    settings.GEMINI_EXHAUSTED = True
-                elif provider_name == "groq":
-                    settings.GROQ_EXHAUSTED = True
+                settings.set_exhausted(provider_name, True)
                 break
                 
             if attempt < attempts:
@@ -67,10 +61,7 @@ def execute_with_retry_and_circuit_breaker(provider_name: str, client_initialize
                 backoff *= 3
             else:
                 logger.warning(f"[{provider_name.upper()}] Failed all {attempts} attempts. Tripping circuit breaker for safety.")
-                if provider_name == "gemini":
-                    settings.GEMINI_EXHAUSTED = True
-                elif provider_name == "groq":
-                    settings.GROQ_EXHAUSTED = True
+                settings.set_exhausted(provider_name, True)
                 
     return None, False
 
@@ -274,5 +265,6 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
         "reply": reply,
         "tool_called": last_tool,
         "route": route_data,
-        "rag_used": len(rag_results) > 0
+        "rag_used": len(rag_results) > 0,
+        "provider": final_provider
     }

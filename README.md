@@ -68,7 +68,7 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 
 ## Non-Functional Qualities
 
-- **Security**: Tightened CORS configurations restricting origins to `http://localhost:5173`, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. *Note: The Staff Portal features no authentication or rate limiting as a known demo limitation to facilitate seamless evaluation by judges.*
+- **Security**: Tightened CORS configurations restricting origins, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. The Staff Portal is secured with passcode-gated JWT authentication (4 hours expiration, token stored in sessionStorage) and a higher burst rate limit of 30 requests per 10 seconds per IP.
 - **Accessibility**: Built with semantic HTML (headers, buttons, main, labels), high-contrast accessibility mode, text size optimization, keyboard navigation support, and voice recognition/synthesis.
 - **Testing**: Includes full unit tests for API, routing graph, and simulator routines, plus an automated eval script verifying 15 bilingual/tool-calling prompts.
 
@@ -115,3 +115,18 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
   ```bash
   python tests/eval_script.py
   ```
+
+---
+
+## Known Limitations for Scaling
+
+### Rate Limiting
+The current `IPBasedRateLimiter` implementation is entirely **in-memory** and **per-process** (stored inside a Python dictionary on the running FastAPI application instance). 
+While this is optimal and highly efficient for local development, hackathon demos, or single-process testing, it has the following known limitations at scale:
+*   **Worker Process Isolation:** In a multi-worker production environment (e.g. uvicorn with `--workers` or running behind Gunicorn), each worker process maintains its own independent in-memory rate limiter dictionary. A client's requests would be routed across workers, effectively multiplying their rate limit threshold by the number of active worker processes.
+*   **Multi-Instance Deployment:** If the backend is scaled horizontally across multiple servers or container pods (e.g. in Kubernetes), the rate limiter state is not shared, rendering the rate limiting inconsistent.
+
+### Recommended Mitigation
+For production-grade deployments, this in-memory rate limiter should be replaced with a distributed rate-limiting solution:
+*   **SlowAPI:** Integrate `slowapi`, a FastAPI port of `limits` that provides decorator-based rate limiting.
+*   **Redis Backend:** Configure SlowAPI (or a custom middleware) to store rate limit counters in a shared **Redis** instance. This ensures that rate-limit states are synchronized in real-time across all worker processes and horizontal container instances.

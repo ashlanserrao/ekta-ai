@@ -4,16 +4,29 @@ import { useVoice } from "../hooks/useVoice";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
+const getProviderBadge = (provider) => {
+  if (provider === "gemini") {
+    return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid var(--color-low)", color: "var(--color-low)", fontWeight: "600", display: "inline-block" }}>🤖 Live Gemini</span>;
+  }
+  if (provider === "groq") {
+    return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(245, 158, 11, 0.1)", border: "1px solid var(--color-medium)", color: "var(--color-medium)", fontWeight: "600", display: "inline-block" }}>⚡ Groq Core</span>;
+  }
+  return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(148, 163, 184, 0.1)", border: "1px solid var(--text-muted)", color: "var(--text-secondary)", fontWeight: "600", display: "inline-block" }}>🔌 Offline Mode</span>;
+};
+
 export default function FanAssistant({ gates, zones }) {
   // Chat state - Fan
   const [fanMessages, setFanMessages] = useState([
-    { sender: "bot", text: "Welcome to FIFA World Cup 2026! I am EktaAI, your stadium assistant. How can I help you find your seat, food stalls, or accessible routes today?" }
+    { sender: "bot", text: "Welcome to the World Cup 2026! I am EktaAI, your stadium assistant. How can I help you find your seat, food stalls, or accessible routes today?" }
   ]);
   const [fanInput, setFanInput] = useState("");
   const [fanLanguage, setFanLanguage] = useState("en");
   const [activeRoute, setActiveRoute] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState("");
+  
+  // AI Provider transparency state
+  const [activeProvider, setActiveProvider] = useState("gemini");
   
   const chatEndRef = useRef(null);
 
@@ -60,6 +73,10 @@ export default function FanAssistant({ gates, zones }) {
         const data = await res.json();
         setFanMessages(prev => [...prev, { sender: "bot", text: data.reply }]);
         
+        if (data.provider) {
+          setActiveProvider(data.provider);
+        }
+        
         speakText(data.reply, fanLanguage);
         
         if (data.route) {
@@ -84,19 +101,22 @@ export default function FanAssistant({ gates, zones }) {
       <div className="glass-panel chat-container" aria-label="Fan chat assistant">
         <div className="chat-header">
           <div>
-            <h2 style={{ fontSize: "1.1rem" }}>Fan Assistant (Multilingual)</h2>
+            <h2 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              Fan Assistant {getProviderBadge(activeProvider)}
+            </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.80rem" }}>
               Voice support enabled. Ask directions or gate info.
             </p>
           </div>
           
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             {/* Language Selector */}
             <select 
               value={fanLanguage} 
               onChange={(e) => setFanLanguage(e.target.value)}
               style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", border: "1px solid var(--border-color)", padding: "0.3rem", borderRadius: "6px" }}
               aria-label="Select Assistant Language"
+              disabled={chatLoading}
             >
               <option value="en">English 🇬🇧</option>
               <option value="es">Español 🇪🇸</option>
@@ -113,6 +133,7 @@ export default function FanAssistant({ gates, zones }) {
               className="btn-secondary"
               style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", borderColor: voiceEnabled ? "var(--color-low)" : "var(--border-color)" }}
               aria-label="Toggle voice output read back"
+              disabled={chatLoading}
             >
               🔊 {voiceEnabled ? "Voice ON" : "Voice OFF"}
             </button>
@@ -138,6 +159,7 @@ export default function FanAssistant({ gates, zones }) {
             value={fanInput}
             onChange={(e) => setFanInput(e.target.value)}
             aria-label="Type your message here"
+            disabled={chatLoading}
           />
           
           <button 
@@ -145,11 +167,12 @@ export default function FanAssistant({ gates, zones }) {
             onClick={toggleListening}
             className={`voice-btn ${isListening ? "active" : ""}`}
             aria-label="Toggle Voice Input Recording"
+            disabled={chatLoading}
           >
             🎙️
           </button>
           
-          <button type="submit" className="btn-primary">Send</button>
+          <button type="submit" className="btn-primary" disabled={chatLoading || !fanInput.trim()}>Send</button>
         </form>
       </div>
     </div>

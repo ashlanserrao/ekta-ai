@@ -14,7 +14,10 @@ export default function App() {
   // Accessibility text size state
   const [largeText, setLargeText] = useState(false);
   
-  // Live Stadium Data (polled every 3 seconds)
+  // Settings dropdown visibility state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // Live Stadium Data
   const [gates, setGates] = useState([]);
   const [zones, setZones] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -27,39 +30,56 @@ export default function App() {
     setToken("");
   };
 
-  // Fetch Stadium Data (Poll)
+  // 1. Connect to SSE stream for gates & zones (Public telemetry data)
   useEffect(() => {
-    const fetchData = async () => {
+    const eventSource = new EventSource(`${API_BASE}/api/v1/stadium/stream`);
+    
+    eventSource.onmessage = (event) => {
       try {
-        const statusRes = await fetch(`${API_BASE}/api/v1/stadium/status`);
-        if (statusRes.ok) {
-          const data = await statusRes.json();
-          setGates(data.gates);
-          setZones(data.zones);
-        }
-        
-        if (viewMode === "staff" && token) {
-          const alertsRes = await fetch(`${API_BASE}/api/v1/staff/alerts`, {
-            headers: {
-              "Authorization": `Bearer ${token}`
-            }
-          });
-          if (alertsRes.ok) {
-            const data = await alertsRes.json();
-            setAlerts(data);
-          } else if (alertsRes.status === 401) {
-            handleLogout();
-          }
-        } else {
-          setAlerts([]); // Clear alerts when not in staff mode or not logged in
-        }
+        const data = JSON.parse(event.data);
+        setGates(data.gates);
+        setZones(data.zones);
       } catch (err) {
-        console.error("Error polling stadium state:", err);
+        console.error("Error parsing SSE status event:", err);
       }
     };
-    
-    fetchData(); // Initial load
-    const interval = setInterval(fetchData, 3000);
+
+    eventSource.onerror = (err) => {
+      console.error("EventSource connection error:", err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
+  // 2. Poll for staff alerts (Requires auth header)
+  useEffect(() => {
+    if (viewMode !== "staff" || !token) {
+      setAlerts([]);
+      return;
+    }
+
+    const fetchAlerts = async () => {
+      try {
+        const alertsRes = await fetch(`${API_BASE}/api/v1/staff/alerts`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (alertsRes.ok) {
+          const data = await alertsRes.json();
+          setAlerts(data);
+        } else if (alertsRes.status === 401) {
+          handleLogout();
+        }
+      } catch (err) {
+        console.error("Error polling alerts state:", err);
+      }
+    };
+
+    fetchAlerts(); // Initial call
+    const interval = setInterval(fetchAlerts, 3000);
     return () => clearInterval(interval);
   }, [viewMode, token]);
 
@@ -81,19 +101,42 @@ export default function App() {
     }
   }, [largeText]);
 
+  // Initial loading state (gates/zones are empty on first fetch window)
+  const initialLoading = gates.length === 0 || zones.length === 0;
+
+  const LoadingSpinner = () => (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: "1.5rem" }}>
+      <div style={{
+        width: "50px",
+        height: "50px",
+        border: "5px solid rgba(255, 255, 255, 0.1)",
+        borderTop: "5px solid var(--accent-color)",
+        borderRadius: "50%",
+        animation: "spin 1s linear infinite"
+      }} />
+      <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>Connecting to Digital Twin Live Feeds...</p>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+
   return (
     <div>
       {/* Header Panel */}
       <header role="banner">
         <div className="logo-container">
-          <div className="logo-badge">FIFA 26</div>
+          <div className="logo-badge">EKTA 26</div>
           <div>
             <h1 className="logo-text">EktaAI</h1>
             <div className="logo-sub">Stadium Operations Twin</div>
           </div>
         </div>
         
-        <div className="nav-controls">
+        <div className="nav-controls" style={{ position: "relative" }}>
           <button 
             className={`btn-secondary ${viewMode === "fan" ? "active-tab" : ""}`}
             onClick={() => setViewMode("fan")}
@@ -121,37 +164,73 @@ export default function App() {
             </button>
           )}
 
+          {/* Collapsed Settings Popover */}
           <button 
-            className="btn-secondary"
-            onClick={() => setLargeText(!largeText)}
-            aria-label={largeText ? "Disable large text size" : "Enable large text size"}
-            style={{ border: largeText ? "2px solid var(--accent-color)" : "1px solid var(--border-color)" }}
+            className={`btn-secondary ${settingsOpen ? "active-tab" : ""}`}
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            aria-label="Toggle settings popover"
           >
-            🔍 {largeText ? "Normal Text" : "Large Text"}
+            ⚙️ Settings
           </button>
 
-          <button 
-            className="btn-secondary"
-            onClick={() => setHighContrast(!highContrast)}
-            aria-label={highContrast ? "Disable high contrast mode" : "Enable high contrast mode"}
-            style={{ border: highContrast ? "2px solid #ffff00" : "1px solid var(--border-color)" }}
-          >
-            ♿ High Contrast
-          </button>
+          {settingsOpen && (
+            <div className="glass-panel" style={{
+              position: "absolute",
+              top: "100%",
+              right: 0,
+              marginTop: "0.5rem",
+              padding: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem",
+              zIndex: 1000,
+              minWidth: "220px",
+              textAlign: "left",
+              border: "1px solid var(--border-active)"
+            }}>
+              <h4 style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.4rem", marginBottom: "0.25rem", fontWeight: "700" }}>
+                Accessibility settings
+              </h4>
+              
+              <button 
+                className="btn-secondary"
+                onClick={() => setLargeText(!largeText)}
+                aria-label={largeText ? "Disable large text size" : "Enable large text size"}
+                style={{ width: "100%", justifyContent: "flex-start", fontSize: "0.9rem", border: largeText ? "2px solid var(--accent-color)" : "1px solid var(--border-color)" }}
+              >
+                🔍 {largeText ? "Normal Text" : "Large Text"}
+              </button>
+
+              <button 
+                className="btn-secondary"
+                onClick={() => setHighContrast(!highContrast)}
+                aria-label={highContrast ? "Disable high contrast mode" : "Enable high contrast mode"}
+                style={{ width: "100%", justifyContent: "flex-start", fontSize: "0.9rem", border: highContrast ? "2px solid #ffff00" : "1px solid var(--border-color)" }}
+              >
+                ♿ High Contrast
+              </button>
+            </div>
+          )}
         </div>
       </header>
       
       {/* Main Container */}
       <main role="main">
         {viewMode === "fan" ? (
-          <FanAssistant gates={gates} zones={zones} />
-        ) : token ? (
-          <StaffDashboard zones={zones} alerts={alerts} gates={gates} token={token} onLogout={handleLogout} />
-        ) : (
+          initialLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <FanAssistant gates={gates} zones={zones} />
+          )
+        ) : !token ? (
           <StaffLogin onLoginSuccess={(newToken) => {
             sessionStorage.setItem("staff_token", newToken);
             setToken(newToken);
           }} />
+        ) : initialLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <StaffDashboard zones={zones} alerts={alerts} gates={gates} token={token} onLogout={handleLogout} />
         )}
       </main>
     </div>

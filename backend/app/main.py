@@ -39,11 +39,17 @@ async def lifespan(app: FastAPI):
         logger.info("Stopping Digital Twin Simulator...")
         active_simulator.stop()
 
+# Disable OpenAPI Docs in Production
+docs_url = None if settings.ENV == "production" else "/docs"
+redoc_url = None if settings.ENV == "production" else "/redoc"
+
 app = FastAPI(
     title="EktaAI API",
     description="GenAI-powered stadium operations assistant backend for FIFA World Cup 2026",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url=docs_url,
+    redoc_url=redoc_url
 )
 
 @app.exception_handler(ResponseValidationError)
