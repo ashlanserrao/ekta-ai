@@ -126,6 +126,7 @@ export default function App() {
 
   return (
     <div>
+      <a href="#main" className="skip-link">Skip to main content</a>
       {/* Header Panel */}
       <header role="banner">
         <div className="logo-container">
@@ -215,7 +216,7 @@ export default function App() {
       </header>
       
       {/* Main Container */}
-      <main role="main">
+      <main role="main" id="main">
         {viewMode === "fan" ? (
           initialLoading ? (
             <LoadingSpinner />

@@ -7,7 +7,7 @@
   
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-muted: #7c8aa3;
   
   --accent-color: #2563eb;
   --accent-secondary: #06b6d4;
@@ -168,8 +168,8 @@ header {
 }
 
 .active-tab {
-  border-color: var(--accent-color) !important;
-  color: var(--accent-color) !important;
+  border-color: var(--accent-secondary) !important;
+  color: var(--accent-secondary) !important;
 }
 
 /* Dashboard Views Layout */
@@ -508,4 +508,25 @@ body.large-text button {
 }
 body.large-text .map-legend, body.large-text .info-panel, body.large-text p {
   font-size: 1.1rem;
+}
+/* --- Keyboard Accessibility: Skip to Main Content --- */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  background-color: var(--accent-secondary);
+  color: #0a0d14;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  border-radius: 0 0 8px 8px;
+  z-index: 9999;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: transform var(--transition-speed) ease;
+}
+
+.skip-link:focus {
+  transform: translate(-50%, 0);
+  outline: none;
 }

@@ -88,3 +88,8 @@ app.include_router(auth_router)
 @app.get("/")
 def read_root():
     return {"app": "EktaAI API", "status": "healthy", "version": "1.0.0"}
+
+# Liveness/Readiness probe endpoint for deployment hosting platforms
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
