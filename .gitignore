@@ -67,3 +67,7 @@ lerna-debug.log*
 *.swp
 .DS_Store
 Thumbs.db
+
+# Packaging and submission artifacts
+submission.zip
+package_submission.py

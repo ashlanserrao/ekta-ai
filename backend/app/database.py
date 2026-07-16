@@ -142,7 +142,13 @@ def init_db():
             ("Section 102 Entry", "Section 102 Entry", "section"),
             ("Section 105 Entry", "Section 105 Entry", "section"),
             ("Section 204 Entry", "Section 204 Entry", "section"),
-            ("Section 305 Entry", "Section 305 Entry", "section")
+            ("Section 305 Entry", "Section 305 Entry", "section"),
+            
+            # Concourse Junctions
+            ("Concourse NW", "Concourse NW Junction", "concourse"),
+            ("Concourse NE", "Concourse NE Junction", "concourse"),
+            ("Concourse SE", "Concourse SE Junction", "concourse"),
+            ("Concourse SW", "Concourse SW Junction", "concourse")
         ]
         cursor.executemany(
             "INSERT OR IGNORE INTO nodes (id, name, type) VALUES (?, ?, ?)",
@@ -166,10 +172,22 @@ def init_db():
             ("South Concourse Stairs 4", "Section 305 Entry", 4.0, 1, "concourse"),
             ("West Concourse level path", "Section 105 Entry", 6.0, 1, "concourse"),
             ("West Escalator B", "Section 105 Entry", 3.0, 1, "concourse"),
-            ("Section 102 Entry", "Section 204 Entry", 25.0, 1, "ring"),
-            ("Section 204 Entry", "Section 305 Entry", 25.0, 1, "ring"),
-            ("Section 305 Entry", "Section 105 Entry", 25.0, 1, "ring"),
-            ("Section 105 Entry", "Section 102 Entry", 25.0, 1, "ring")
+            
+            # Concourse Ring Edges
+            ("Concourse NW", "Concourse NE", 10.0, 1, "ring"),
+            ("Concourse NE", "Concourse SE", 10.0, 1, "ring"),
+            ("Concourse SE", "Concourse SW", 10.0, 1, "ring"),
+            ("Concourse SW", "Concourse NW", 10.0, 1, "ring"),
+            
+            # Section Entries connections to Concourse Junctions
+            ("Section 102 Entry", "Concourse NW", 5.0, 1, "ring"),
+            ("Section 102 Entry", "Concourse NE", 5.0, 1, "ring"),
+            ("Section 204 Entry", "Concourse NE", 5.0, 1, "ring"),
+            ("Section 204 Entry", "Concourse SE", 5.0, 1, "ring"),
+            ("Section 305 Entry", "Concourse SE", 5.0, 1, "ring"),
+            ("Section 305 Entry", "Concourse SW", 5.0, 1, "ring"),
+            ("Section 105 Entry", "Concourse SW", 5.0, 1, "ring"),
+            ("Section 105 Entry", "Concourse NW", 5.0, 1, "ring")
         ]
         cursor.executemany(
             "INSERT OR IGNORE INTO edges (from_node, to_node, distance_or_weight, is_accessible, edge_type) VALUES (?, ?, ?, ?, ?)",

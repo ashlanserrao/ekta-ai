@@ -19,7 +19,12 @@ const NODE_COORDINATES = {
   "Section 102 Entry": { x: 250, y: 170 },
   "Section 105 Entry": { x: 160, y: 190 },
   "Section 204 Entry": { x: 320, y: 250 },
-  "Section 305 Entry": { x: 250, y: 310 }
+  "Section 305 Entry": { x: 250, y: 310 },
+  // Concourse Junctions
+  "Concourse NW": { x: 160, y: 180 },
+  "Concourse NE": { x: 340, y: 180 },
+  "Concourse SE": { x: 340, y: 320 },
+  "Concourse SW": { x: 160, y: 320 }
 };
 
 export default function InteractiveMap({ gates = [], zones = [], activeRoute }) {

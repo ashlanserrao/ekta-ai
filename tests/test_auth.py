@@ -115,24 +115,32 @@ def test_staff_rate_limiting():
     # Let's perform 31 requests and ensure the 31st returns 429.
     test_ip = "127.0.0.1"
     
-    with TestClient(app) as client:
-        # Get valid token
-        login_res = client.post(
-            "/api/v1/auth/staff/login",
-            json={"passcode": Config.STAFF_PASSCODE}
-        )
-        token = login_res.json()["token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Forwarded-For": test_ip
-        }
-        
-        # Run 30 requests (which should succeed)
-        for _ in range(30):
-            res = client.get("/api/v1/staff/alerts", headers=headers)
-            assert res.status_code == 200
+    # Mock get_staff_alerts to prevent slow LLM calls during rate limit test
+    import backend.app.routers.alerts
+    original_get_alerts = backend.app.routers.alerts.get_staff_alerts
+    backend.app.routers.alerts.get_staff_alerts = lambda: []
+    
+    try:
+        with TestClient(app) as client:
+            # Get valid token
+            login_res = client.post(
+                "/api/v1/auth/staff/login",
+                json={"passcode": Config.STAFF_PASSCODE}
+            )
+            token = login_res.json()["token"]
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "X-Forwarded-For": test_ip
+            }
             
-        # The 31st request should be rate-limited
-        res_limit = client.get("/api/v1/staff/alerts", headers=headers)
-        assert res_limit.status_code == 429
-        assert "Too many requests" in res_limit.json()["detail"]
+            # Run 30 requests (which should succeed)
+            for _ in range(30):
+                res = client.get("/api/v1/staff/alerts", headers=headers)
+                assert res.status_code == 200
+                
+            # The 31st request should be rate-limited
+            res_limit = client.get("/api/v1/staff/alerts", headers=headers)
+            assert res_limit.status_code == 429
+            assert "Too many requests" in res_limit.json()["detail"]
+    finally:
+        backend.app.routers.alerts.get_staff_alerts = original_get_alerts
