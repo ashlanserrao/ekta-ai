@@ -52,7 +52,7 @@ Try pasting these exact messages into the Fan Assistant chat box:
 ---
 
 ### 📊 Staff Dashboard Tab (Operational Intelligence & Real-time Twin Queries)
-Switch to the **Staff Dashboard** view in the top navigation and query the staff intelligence portal:
+Switch to the **Staff Dashboard** view in the top navigation, enter the default staff passcode **`fifa2026`** to log in, and query the staff intelligence portal:
 
 1. **Crowd Capacity Operational Query**:
    ```text
@@ -71,7 +71,7 @@ Switch to the **Staff Dashboard** view in the top navigation and query the staff
 ## 🏗️ Architecture at a Glance
 - **SQLite Digital Twin**: Holds the real-time truth database for stadium zones, gates, and nodes. An active simulation thread oscillates crowd levels to mimic IoT sensors.
 - **FastAPI Backend Router**: Orchestrates responses, parses system parameters, sanitizes inputs, and handles rate limiting.
-- **Gemini SDK Orchestrator**: Uses function calling to map user intentions dynamically to Python operations (Dijkstra routing, twin database queries).
+- **LLM Orchestrator**: Uses function calling to map user intentions dynamically to Python operations (Dijkstra routing, twin database queries).
 - **Vite & React Frontend**: Combines an interactive SVG map renderer, Fan Voice Assistant, and live Staff Monitoring console.
 
 *(For a comprehensive layout diagram and additional options, refer to the main [README.md](file:///h:/PromptWars/README.md) file).*
@@ -84,5 +84,6 @@ Switch to the **Staff Dashboard** view in the top navigation and query the staff
 
 ---
 
-## 🔒 Security & Demo Limitations Note
-- **Staff Portal Authentication**: The Staff Dashboard and staff chat endpoints do not require authentication or rate limiting in this version. This is a deliberate demo design decision to ensure judges can easily evaluate operational intelligence and mock workflows without managing staff credentials or encountering rate limit blockages.
+## 🔒 Security & Demo Credentials Note
+- **Staff Portal Authentication**: The Staff Dashboard and staff chat endpoints are secured with passcode-gated JWT authentication (4-hour expiration) and an IP-based rate limiter (30 requests per 10 seconds).
+- **Default Passcode**: Use the default passcode **`fifa2026`** (loaded from `.env`) to log into the Staff Dashboard.

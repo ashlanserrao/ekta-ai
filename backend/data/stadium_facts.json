@@ -292,5 +292,35 @@
     "category": "family_services",
     "title": "Missing Children and Safety Protocol",
     "content": "If a child is lost, contact any green-armband steward immediately. Missing children are escorted to the Lost & Found office at Room 204."
+  },
+  {
+    "id": "sustainability_recycling",
+    "category": "sustainability",
+    "title": "Recycling & Waste Stations",
+    "content": "Color-coded recycling stations (compost, recyclables, landfill) are located at every concourse near restrooms. All food vendors use compostable packaging. Stadium-wide waste diversion target for the tournament is 90%."
+  },
+  {
+    "id": "sustainability_water",
+    "category": "sustainability",
+    "title": "Free Water Refill Stations",
+    "content": "Free filtered water refill stations are available at Section 105, 210, and 315 concourses. Bring a reusable bottle — single-use plastic bottle sales are being phased out inside the stadium bowl."
+  },
+  {
+    "id": "sustainability_transit",
+    "category": "sustainability",
+    "title": "Transit Incentives & Carbon Savings",
+    "content": "Match-day Metro Line A and B tickets are free with a valid game ticket to encourage public transit over driving. Choosing transit over a solo car trip saves approximately 4.6 kg of CO2 per fan per trip."
+  },
+  {
+    "id": "sustainability_energy",
+    "category": "sustainability",
+    "title": "Renewable Energy & Lighting",
+    "content": "The stadium is powered by 60% renewable energy sourced from an on-site solar array and grid-purchased wind credits. All concourse and pitch lighting uses LED fixtures, cutting match-day energy use by roughly 40% versus legacy floodlights."
+  },
+  {
+    "id": "sustainability_volunteer",
+    "category": "sustainability",
+    "title": "Green Volunteer Program",
+    "content": "Volunteer 'Green Stewards' in teal vests are stationed at concourse recycling points to help fans sort waste correctly. Ask any Green Steward for details on the stadium's sustainability initiatives."
   }
 ]

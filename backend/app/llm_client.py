@@ -25,10 +25,11 @@ class LLMResult:
         return f"LLMResult(reply={self.reply[:50]}..., tool_calls={self.tool_calls})"
 
 class MockLLMClient:
+    provider_name = "mock"
     def __init__(self):
         logger.info("MockLLMClient initialized.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None, history: list = None) -> LLMResult:
         logger.info("Executing MockLLMClient generate.")
         
         # 0. Check if this is an operational alert translation request
@@ -220,9 +221,9 @@ class MockLLMClient:
 
         return LLMResult(reply=reply, tool_calls=tool_calls)
 
-    def generate_stream(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None):
+    def generate_stream(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None, history: list = None):
         logger.info("Executing MockLLMClient generate_stream.")
-        res = self.generate(system_prompt, user_message, tools, response_format, mode)
+        res = self.generate(system_prompt, user_message, tools, response_format, mode, history=history)
         
         # Stream tool calls if present
         if res.tool_calls:
@@ -247,6 +248,7 @@ class MockLLMClient:
                 yield {"content": space + word}
 
 class GroqLLMClient:
+    provider_name = "groq"
     def __init__(self, api_key: str):
         self.api_key = api_key
         from backend.app.config import Config
@@ -310,7 +312,31 @@ class GroqLLMClient:
             }
         ]
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
+    def _build_messages(self, system_prompt: str, user_message: str, history: list = None) -> list:
+        full_history = []
+        if history:
+            for msg in history:
+                if isinstance(msg, dict):
+                    role = msg.get("role")
+                    content = msg.get("content")
+                elif hasattr(msg, "role") and hasattr(msg, "content"):
+                    role = msg.role
+                    content = msg.content
+                else:
+                    continue
+                
+                if role and content:
+                    role_norm = "assistant" if role in ["bot", "assistant"] else "user"
+                    full_history.append({"role": role_norm, "content": content})
+                    
+        full_history.append({"role": "user", "content": user_message})
+        
+        # Slice/truncate to max of last 4 messages to keep payload lightweight and avoid token limits
+        recent_history = full_history[-4:]
+        
+        return [{"role": "system", "content": system_prompt}] + recent_history
+
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None, history: list = None) -> LLMResult:
         logger.info(f"Executing Groq API call via httpx to model {self.model}.")
         import httpx
         
@@ -321,10 +347,7 @@ class GroqLLMClient:
         
         payload = {
             "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
+            "messages": self._build_messages(system_prompt, user_message, history),
             "temperature": 0.1,
             "max_tokens": 150 # Strict completion cap
         }
@@ -364,7 +387,7 @@ class GroqLLMClient:
             logger.error(f"Groq API HTTP Request failed: {e}")
             raise e
 
-    def generate_stream(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None):
+    def generate_stream(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, history: list = None):
         logger.info(f"Executing Groq streaming API call via httpx to model {self.model}.")
         import httpx
         
@@ -375,10 +398,7 @@ class GroqLLMClient:
         
         payload = {
             "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
+            "messages": self._build_messages(system_prompt, user_message, history),
             "temperature": 0.1,
             "max_tokens": 150, # Enforce strict max_tokens cap
             "stream": True

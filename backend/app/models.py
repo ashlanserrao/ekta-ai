@@ -1,12 +1,18 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
+
+class ChatMessage(BaseModel):
+    role: str = Field(..., description="Role of the sender: user or assistant")
+    content: str = Field(..., description="Message text")
 
 class FanChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=500, description="Chat message from the fan")
     language: Optional[str] = Field("en", description="ISO 639-1 language code")
+    history: Optional[List[ChatMessage]] = Field(default_factory=list, description="Recent conversation history")
 
 class StaffChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=500, description="Operations query from the staff")
+    history: Optional[List[ChatMessage]] = Field(default_factory=list, description="Recent conversation history")
 
 class RouteInfo(BaseModel):
     id: str
@@ -44,6 +50,7 @@ class StadiumStatus(BaseModel):
 
 class PlainLanguageAlert(BaseModel):
     id: str
-    severity: str  # info, warning, critical
+    severity: Literal["info", "warning", "critical"]
     message: str
     recommended_action: str
+

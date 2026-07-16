@@ -12,7 +12,7 @@ import backend.app.rag
 backend.app.rag.HAS_SEMANTIC_LIBS = False
 
 from backend.app.database import init_db
-from backend.app.llm import query_stadium_assistant
+from backend.app.services.orchestrator import query_stadium_assistant
 
 def run_evaluation():
     print("==================================================")

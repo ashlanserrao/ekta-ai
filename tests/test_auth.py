@@ -92,7 +92,7 @@ def test_protected_routes_valid_token():
         # Inject Mock LLM Client to prevent querying external APIs during tests
         import backend.app.routers.chat
         original_query = backend.app.routers.chat.query_stadium_assistant
-        backend.app.routers.chat.query_stadium_assistant = lambda msg, is_staff, client=None: {"reply": "Mock reply"}
+        backend.app.routers.chat.query_stadium_assistant = lambda msg, is_staff, client=None, *args, **kwargs: {"reply": "Mock reply"}
         
         try:
             # Check chat route

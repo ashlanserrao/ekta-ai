@@ -1,7 +1,10 @@
 import time
 import logging
+import json
+import asyncio
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from sse_starlette.sse import EventSourceResponse
 
 from backend.app.database import get_db_connection
 from backend.app.models import GateStatus, ZoneStatus, StadiumStatus
@@ -36,10 +39,6 @@ def get_zones():
         logger.error(f"Error in get_zones: {e}")
         raise HTTPException(status_code=500, detail="Database connection error while retrieving zones.")
 
-import json
-import asyncio
-from fastapi import Request
-from sse_starlette.sse import EventSourceResponse
 
 @router.get("/status", response_model=StadiumStatus)
 def get_stadium_status():

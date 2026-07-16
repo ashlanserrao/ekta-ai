@@ -4,13 +4,10 @@ import InteractiveMap from "./InteractiveMap";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 const getProviderBadge = (provider) => {
-  if (provider === "gemini") {
-    return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid var(--color-low)", color: "var(--color-low)", fontWeight: "600", display: "inline-block" }}>🤖 Live Gemini</span>;
-  }
   if (provider === "groq") {
-    return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(245, 158, 11, 0.1)", border: "1px solid var(--color-medium)", color: "var(--color-medium)", fontWeight: "600", display: "inline-block" }}>⚡ Groq Core</span>;
+    return <span className="provider-badge groq">⚡ Groq Core</span>;
   }
-  return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(148, 163, 184, 0.1)", border: "1px solid var(--text-muted)", color: "var(--text-secondary)", fontWeight: "600", display: "inline-block" }}>🔌 Offline Mode</span>;
+  return <span className="provider-badge offline">🔌 Offline Mode</span>;
 };
 
 export default function StaffDashboard({ zones, alerts, gates, token, onLogout }) {
@@ -22,7 +19,7 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
   const [staffChatLoading, setStaffChatLoading] = useState(false);
   
   // AI Provider transparency state
-  const [activeProvider, setActiveProvider] = useState("gemini");
+  const [activeProvider, setActiveProvider] = useState("groq");
   
   const staffChatEndRef = useRef(null);
 
@@ -42,6 +39,11 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
     setStaffChatLoading(true);
     
     try {
+      const historyPayload = staffMessages.slice(-3).map(m => ({
+        role: m.sender === "bot" ? "assistant" : "user",
+        content: m.text
+      }));
+
       const res = await fetch(`${API_BASE}/api/v1/chat/staff`, {
         method: "POST",
         headers: { 
@@ -49,7 +51,10 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
           "Accept": "text/event-stream",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ message: userMsg })
+        body: JSON.stringify({ 
+          message: userMsg,
+          history: historyPayload
+        })
       });
       
       if (res.ok) {
@@ -108,11 +113,11 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
   return (
     <div className="view-container">
       {/* Left Col: Crowd Densities & Alert log */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", flex: 1 }}>
+      <div className="staff-left-col">
         {/* Density list */}
-        <div className="glass-panel" style={{ padding: "1.5rem" }}>
+        <div className="glass-panel padding-large">
           <h2>Live Crowd Densities (Digital Twin Sensors)</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "1.25rem" }}>
+          <p className="panel-desc">
             Crowd counts are simulated in real-time from SQLite digital twin model.
           </p>
           
@@ -124,24 +129,20 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
               else if (zone.density >= 0.40) colorClass = "medium";
               
               return (
-                <div key={zone.id} className="glass-panel density-card" style={{ background: "rgba(255,255,255,0.01)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontWeight: "700" }}>{zone.name}</span>
+                <div key={zone.id} className="glass-panel density-card density-card-bg">
+                  <div className="flex-between">
+                    <span className="bold-text">{zone.name}</span>
                     <span className={`status-badge ${colorClass}`}>{colorClass}</span>
                   </div>
                   <div className="density-val">{densityPct}%</div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                  <div className="text-small-muted">
                     {zone.current_crowd} / {zone.capacity} occupants
                   </div>
                   {/* Progress Bar */}
-                  <div style={{ width: "100%", height: "6px", background: "var(--bg-tertiary)", borderRadius: "3px", overflow: "hidden", marginTop: "5px" }}>
+                  <div className="progress-bar-bg">
                     <div 
-                      style={{ 
-                        width: `${densityPct}%`, 
-                        height: "100%", 
-                        background: zone.density > 0.75 ? "var(--color-high)" : zone.density >= 0.40 ? "var(--color-medium)" : "var(--color-low)",
-                        transition: "width 0.5s ease"
-                      }}
+                      className={`progress-bar-fill ${colorClass}`}
+                      style={{ width: `${densityPct}%` }}
                     />
                   </div>
                 </div>
@@ -154,9 +155,9 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
         <InteractiveMap gates={gates} zones={zones} />
         
         {/* Operational alerts */}
-        <div className="glass-panel alert-panel" style={{ padding: "1.5rem" }}>
+        <div className="glass-panel alert-panel padding-large">
           <h2>Operations Live Alerts (GenAI Action Engine)</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>
+          <p className="alert-panel-desc">
             Plain-language alerts triggered automatically by digital twin anomalies.
           </p>
           
@@ -165,7 +166,7 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
               <div key={alert.id} className={`alert-item ${alert.severity}`}>
                 <div className="alert-title">
                   <span>{alert.message}</span>
-                  <span style={{ textTransform: "uppercase", fontSize: "0.75rem", padding: "0.1rem 0.4rem", borderRadius: "4px", background: "rgba(0,0,0,0.3)" }}>
+                  <span className="alert-severity-badge">
                     {alert.severity}
                   </span>
                 </div>
@@ -182,10 +183,10 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
       <div className="glass-panel chat-container" aria-label="Staff operations query portal">
         <div className="chat-header">
           <div>
-            <h2 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <h2 className="chat-title-container">
               Staff Decision Support Console {getProviderBadge(activeProvider)}
             </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.80rem" }}>
+            <p className="chat-subtitle">
               Query why bottlenecks are occurring, get layout mitigations, etc.
             </p>
           </div>
@@ -197,7 +198,7 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
               {msg.text}
             </div>
           ))}
-          {staffChatLoading && <div className="message-bubble bot" style={{ opacity: 0.6 }}>Orchestrating response...</div>}
+          {staffChatLoading && <div className="message-bubble bot typing-indicator">Orchestrating response...</div>}
           <div ref={staffChatEndRef} />
         </div>
         

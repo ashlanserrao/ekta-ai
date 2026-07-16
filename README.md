@@ -18,7 +18,7 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 |                            FastAPI Backend                            |
 |                                                                       |
 |  +--------------------+   +-----------------------+   +------------+  |
-|  |     Rate Limiter   |   |   Gemini Orchestrator |   | RAG Engine |  |
+|  |     Rate Limiter   |   |   Groq Orchestrator   |   | RAG Engine |  |
 |  |  (Token/IP Bucket) |   |    (Tool Caller)      |   |  (FAISS)   |  |
 |  +---------+----------+   +-----------+-----------+   +-----+------+  |
 |            |                          |                     |         |
@@ -58,7 +58,7 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 4. **Dijkstra Routing Graph (routing.py)**:
    - Computes shortest paths dynamically between gates, concourses, stairs, elevators, and seating sections using a dynamic `nodes` and `edges` graph in SQLite. Features an `accessible_only` filter to construct step-free routes for limited-mobility fans.
    
-5. **Gemini Tool Orchestration**:
+5. **Groq Tool Orchestration**:
    - Automatically decides when to call Python tools to query the SQLite twin database for routing, gate status, or zone density details.
    
 6. **Semantic RAG Store**:
@@ -79,14 +79,14 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 ### Prerequisites
 - Node.js & npm (v18+)
 - Python 3.10+
-- A valid `GEMINI_API_KEY` (Optional. If not supplied, the backend falls back to Mock Mode matching queries, executing database tools, and serving RAG content).
+- A valid `GROQ_API_KEY` (Optional. If not supplied, the backend falls back to Mock Mode matching queries, executing database tools, and serving RAG content).
 
 ### Environment Configuration
 1. Copy the template `.env.example` file to `.env`:
    ```bash
    cp .env.example .env
    ```
-2. Open `.env` and fill in your `GEMINI_API_KEY` (optional) and other settings.
+2. Open `.env` and fill in your `GROQ_API_KEY` (optional) and other settings.
 
 ### 1. Install & Run Backend
 1. Open a terminal in the root directory:

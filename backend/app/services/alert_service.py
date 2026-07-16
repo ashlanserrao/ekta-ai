@@ -226,7 +226,7 @@ def get_staff_alerts() -> List[PlainLanguageAlert]:
             "name": row["name"],
             "status": row["status"],
             "congestion": row["congestion_level"],
-            "severity": "medium"
+            "severity": "warning"
         })
         
     # 2. Check for high density zones
@@ -239,7 +239,7 @@ def get_staff_alerts() -> List[PlainLanguageAlert]:
             "capacity": row["capacity"],
             "current_crowd": row["current_crowd"],
             "density": row["density"],
-            "severity": "critical" if row["density"] >= 0.85 else "medium"
+            "severity": "critical" if row["density"] >= 0.85 else "warning"
         })
         
     conn.close()

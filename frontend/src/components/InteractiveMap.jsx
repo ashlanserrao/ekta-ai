@@ -62,7 +62,7 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
     <div className="glass-panel map-container">
       <div className="map-header">
         <h2>Stadium Live Map & Route Planner</h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+        <p className="map-desc">
           Hover stands sectors to view live digital twin sensor feed.
         </p>
       </div>
@@ -204,7 +204,7 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
                   fontSize="9" 
                   fontWeight="700" 
                   textAnchor="middle"
-                  style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}
+                  className="map-label-text"
                 >
                   {nodeName}
                 </text>
@@ -240,7 +240,7 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
                   fontSize="10" 
                   fontWeight="700" 
                   textAnchor="middle"
-                  style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}
+                  className="map-label-text"
                 >
                   {gate.name}
                 </text>
@@ -251,30 +251,30 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
         
         {/* HUD Details Panel */}
         {hoveredZoneData ? (
-          <div style={{ position: "absolute", bottom: "10px", left: "15px", background: "rgba(0,0,0,0.85)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-active)", fontSize: "0.8rem", animation: "slideIn 0.2s ease", zIndex: 10 }}>
-            <strong style={{ color: "var(--accent-secondary)", display: "block", marginBottom: "4px" }}>{hoveredZoneData.name} Sensor Feed</strong>
+          <div className="map-hover-feed">
+            <strong className="map-hover-feed-title">{hoveredZoneData.name} Sensor Feed</strong>
             <div>Occupants: <strong>{hoveredZoneData.current_crowd}</strong> / {hoveredZoneData.capacity}</div>
             <div>Density: <strong>{Math.round(hoveredZoneData.density * 100)}%</strong></div>
           </div>
         ) : (
-          <div style={{ position: "absolute", bottom: "10px", left: "15px", background: "rgba(0,0,0,0.75)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+          <div className="map-instruction-panel">
             Hover stands quadrant for detailed sensor metrics
           </div>
         )}
 
         {/* Map Legend */}
-        <div style={{ position: "absolute", bottom: "10px", right: "15px", display: "flex", gap: "10px", background: "rgba(0,0,0,0.75)", padding: "8px 12px", borderRadius: "8px", fontSize: "0.7rem", border: "1px solid var(--border-color)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-low)" }}></span> Low
+        <div className="map-legend-panel">
+          <div className="map-legend-item">
+            <span className="map-legend-dot low"></span> Low
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-medium)" }}></span> Med
+          <div className="map-legend-item">
+            <span className="map-legend-dot medium"></span> Med
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-high)" }}></span> High
+          <div className="map-legend-item">
+            <span className="map-legend-dot high"></span> High
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#4b5563" }}></span> Closed
+          <div className="map-legend-item">
+            <span className="map-legend-dot closed"></span> Closed
           </div>
         </div>
       </div>

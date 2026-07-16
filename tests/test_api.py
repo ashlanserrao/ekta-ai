@@ -18,9 +18,9 @@ def inject_mock_client():
     import backend.app.routers.chat
     original_query = backend.app.routers.chat.query_stadium_assistant
     
-    def mock_query(user_message, is_staff=False, client=None):
+    def mock_query(user_message, is_staff=False, client=None, *args, **kwargs):
         print(f"\n[TESTING - API] Injecting MockLLMClient for user_message='{user_message}' (is_staff={is_staff})")
-        return original_query(user_message, is_staff=is_staff, client=MockLLMClient())
+        return original_query(user_message, is_staff=is_staff, client=MockLLMClient(), *args, **kwargs)
         
     backend.app.routers.chat.query_stadium_assistant = mock_query
     yield

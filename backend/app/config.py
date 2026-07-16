@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     STADIUM_FACTS_PATH: str = Field(default="")
     
     # Circuit breaker flags (mutable)
-    GROQ_EXHAUSTED: bool = Field(default=False)
+    groq_cooldown_until: float = Field(default=0.0)
 
     # Rate limit settings
     RATE_LIMIT_LIMIT: int = Field(default=5)
@@ -41,14 +41,16 @@ class Settings(BaseSettings):
         """Thread-safe check to verify if a provider is rate limited/exhausted."""
         with self._cb_lock:
             if provider == "groq":
-                return self.GROQ_EXHAUSTED
+                import time
+                return time.time() < self.groq_cooldown_until
             return False
 
     def set_exhausted(self, provider: str, value: bool = True):
         """Thread-safe update of the exhaustion state of a provider."""
         with self._cb_lock:
             if provider == "groq":
-                self.GROQ_EXHAUSTED = value
+                import time
+                self.groq_cooldown_until = time.time() + 60.0 if value else 0.0
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod

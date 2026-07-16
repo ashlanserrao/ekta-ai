@@ -5,13 +5,10 @@ import { useVoice } from "../hooks/useVoice";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 const getProviderBadge = (provider) => {
-  if (provider === "gemini") {
-    return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid var(--color-low)", color: "var(--color-low)", fontWeight: "600", display: "inline-block" }}>🤖 Live Gemini</span>;
-  }
   if (provider === "groq") {
-    return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(245, 158, 11, 0.1)", border: "1px solid var(--color-medium)", color: "var(--color-medium)", fontWeight: "600", display: "inline-block" }}>⚡ Groq Core</span>;
+    return <span className="provider-badge groq">⚡ Groq Core</span>;
   }
-  return <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem", borderRadius: "10px", background: "rgba(148, 163, 184, 0.1)", border: "1px solid var(--text-muted)", color: "var(--text-secondary)", fontWeight: "600", display: "inline-block" }}>🔌 Offline Mode</span>;
+  return <span className="provider-badge offline">🔌 Offline Mode</span>;
 };
 
 export default function FanAssistant({ gates, zones }) {
@@ -26,7 +23,7 @@ export default function FanAssistant({ gates, zones }) {
   const [rateLimitMessage, setRateLimitMessage] = useState("");
   
   // AI Provider transparency state
-  const [activeProvider, setActiveProvider] = useState("gemini");
+  const [activeProvider, setActiveProvider] = useState("groq");
   
   const chatEndRef = useRef(null);
 
@@ -55,13 +52,22 @@ export default function FanAssistant({ gates, zones }) {
     setRateLimitMessage("");
     
     try {
+      const historyPayload = fanMessages.slice(-3).map(m => ({
+        role: m.sender === "bot" ? "assistant" : "user",
+        content: m.text
+      }));
+
       const res = await fetch(`${API_BASE}/api/v1/chat/fan`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Accept": "text/event-stream"
         },
-        body: JSON.stringify({ message: userMsg, language: fanLanguage })
+        body: JSON.stringify({ 
+          message: userMsg, 
+          language: fanLanguage,
+          history: historyPayload
+        })
       });
       
       if (res.status === 429) {
@@ -134,20 +140,20 @@ export default function FanAssistant({ gates, zones }) {
       <div className="glass-panel chat-container" aria-label="Fan chat assistant">
         <div className="chat-header">
           <div>
-            <h2 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <h2 className="chat-title-container">
               Fan Assistant {getProviderBadge(activeProvider)}
             </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.80rem" }}>
+            <p className="chat-subtitle">
               Voice support enabled. Ask directions or gate info.
             </p>
           </div>
           
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div className="flex-align-center">
             {/* Language Selector */}
             <select 
               value={fanLanguage} 
               onChange={(e) => setFanLanguage(e.target.value)}
-              style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)", border: "1px solid var(--border-color)", padding: "0.3rem", borderRadius: "6px" }}
+              className="select-language"
               aria-label="Select Assistant Language"
               disabled={chatLoading}
             >
@@ -163,8 +169,7 @@ export default function FanAssistant({ gates, zones }) {
                   speakText("Voice response activated", fanLanguage);
                 }
               }}
-              className="btn-secondary"
-              style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", borderColor: voiceEnabled ? "var(--color-low)" : "var(--border-color)" }}
+              className={`btn-secondary voice-toggle-btn ${voiceEnabled ? "active-voice" : ""}`}
               aria-label="Toggle voice output read back"
               disabled={chatLoading}
             >
@@ -179,8 +184,8 @@ export default function FanAssistant({ gates, zones }) {
               {msg.text}
             </div>
           ))}
-          {chatLoading && <div className="message-bubble bot" style={{ opacity: 0.6 }}>Assistant is typing...</div>}
-          {rateLimitMessage && <div style={{ color: "var(--color-high)", fontSize: "0.8rem", textAlign: "center" }}>{rateLimitMessage}</div>}
+          {chatLoading && <div className="message-bubble bot typing-indicator">Assistant is typing...</div>}
+          {rateLimitMessage && <div className="rate-limit-alert">{rateLimitMessage}</div>}
           <div ref={chatEndRef} />
         </div>
         

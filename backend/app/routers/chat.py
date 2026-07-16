@@ -35,17 +35,18 @@ async def chat_fan(request: FanChatRequest, req: Request):
         )
         
     try:
+        history_list = [h.model_dump() for h in request.history] if request.history else []
         accept_header = req.headers.get("accept", "")
         if "text/event-stream" in accept_header:
             from fastapi.responses import StreamingResponse
             from backend.app.services.orchestrator import stream_stadium_assistant
             
             def sse_generator():
-                for chunk in stream_stadium_assistant(sanitized_message, is_staff=False):
+                for chunk in stream_stadium_assistant(sanitized_message, is_staff=False, history=history_list):
                     yield f"data: {chunk}\n\n"
             return StreamingResponse(sse_generator(), media_type="text/event-stream")
             
-        response_data = query_stadium_assistant(sanitized_message, is_staff=False)
+        response_data = query_stadium_assistant(sanitized_message, is_staff=False, history=history_list)
         return response_data
     except HTTPException as he:
         raise he
@@ -76,17 +77,18 @@ async def chat_staff(
     sanitized_message = request.message.replace("<", "&lt;").replace(">", "&gt;").strip()
     
     try:
+        history_list = [h.model_dump() for h in request.history] if request.history else []
         accept_header = req.headers.get("accept", "")
         if "text/event-stream" in accept_header:
             from fastapi.responses import StreamingResponse
             from backend.app.services.orchestrator import stream_stadium_assistant
             
             def sse_generator():
-                for chunk in stream_stadium_assistant(sanitized_message, is_staff=True):
+                for chunk in stream_stadium_assistant(sanitized_message, is_staff=True, history=history_list):
                     yield f"data: {chunk}\n\n"
             return StreamingResponse(sse_generator(), media_type="text/event-stream")
             
-        response_data = query_stadium_assistant(sanitized_message, is_staff=True)
+        response_data = query_stadium_assistant(sanitized_message, is_staff=True, history=history_list)
         return response_data
     except HTTPException as he:
         raise he
