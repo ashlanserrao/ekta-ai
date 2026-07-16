@@ -2,8 +2,6 @@ import os
 import re
 import json
 import logging
-from google import genai
-from google.genai import types
 
 logger = logging.getLogger("llm_client")
 
@@ -25,54 +23,6 @@ class LLMResult:
 
     def __repr__(self):
         return f"LLMResult(reply={self.reply[:50]}..., tool_calls={self.tool_calls})"
-
-class GeminiLLMClient:
-    def __init__(self, api_key: str):
-        # Prevent system-wide GOOGLE_API_KEY from overriding our key in the current process
-        os.environ.pop("GOOGLE_API_KEY", None)
-        self.client = genai.Client(api_key=api_key)
-        logger.info("GeminiLLMClient initialized with live API key using google.genai SDK.")
-
-    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
-        logger.info("Executing live Gemini API call via new google.genai SDK.")
-        config = types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            tools=tools,
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=False)
-        )
-        
-        chat = self.client.chats.create(
-            model="gemini-2.5-flash",
-            config=config
-        )
-        response = chat.send_message(user_message)
-        reply = response.text or ""
-        
-        tool_calls = []
-        # Inspect response for direct function calls
-        if response.function_calls:
-            for fc in response.function_calls:
-                tool_calls.append(ToolCall(
-                    name=fc.name,
-                    args=dict(fc.args) if fc.args else {}
-                ))
-                
-        # Fallback inspection of history if tool calls are not in the last response
-        if not tool_calls:
-            try:
-                history = chat.get_history()
-            except AttributeError:
-                history = getattr(chat, 'history', [])
-            
-            for msg in history:
-                if msg.parts:
-                    for part in msg.parts:
-                        if part.function_call:
-                            tool_calls.append(ToolCall(
-                                name=part.function_call.name,
-                                args=dict(part.function_call.args) if part.function_call.args else {}
-                            ))
-        return LLMResult(reply=reply, tool_calls=tool_calls)
 
 class MockLLMClient:
     def __init__(self):
@@ -263,12 +213,38 @@ class MockLLMClient:
                     else:
                         reply = f"According to stadium guidelines: {best_match['content']}"
                 else:
-                    reply = "Welcome to EktaAI, your FIFA World Cup 2026 stadium assistant. How can I help you navigate the stadium or find facilities today?"
+                    reply = "Welcome to EktaAI, your stadium assistant. How can I help you navigate the stadium or find facilities today?"
             except Exception as e:
                 logger.error(f"Dynamic RAG search failed: {e}")
-                reply = "Welcome to EktaAI, your FIFA World Cup 2026 stadium assistant. How can I help you navigate the stadium or find facilities today?"
+                reply = "Welcome to EktaAI, your stadium assistant. How can I help you navigate the stadium or find facilities today?"
 
         return LLMResult(reply=reply, tool_calls=tool_calls)
+
+    def generate_stream(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None):
+        logger.info("Executing MockLLMClient generate_stream.")
+        res = self.generate(system_prompt, user_message, tools, response_format, mode)
+        
+        # Stream tool calls if present
+        if res.tool_calls:
+            tool_calls_list = []
+            for idx, tc in enumerate(res.tool_calls):
+                tool_calls_list.append({
+                    "index": idx,
+                    "function": {
+                        "name": tc.name,
+                        "arguments": json.dumps(tc.args)
+                    }
+                })
+            yield {"tool_calls": tool_calls_list}
+            return
+            
+        # Stream content if present
+        if res.reply:
+            # Yield tokens with minimal sleep to simulate network speed
+            words = res.reply.split(" ")
+            for idx, word in enumerate(words):
+                space = " " if idx > 0 else ""
+                yield {"content": space + word}
 
 class GroqLLMClient:
     def __init__(self, api_key: str):
@@ -277,11 +253,8 @@ class GroqLLMClient:
         self.model = Config.GROQ_MODEL
         logger.info(f"GroqLLMClient initialized using model {self.model}.")
 
-    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
-        logger.info(f"Executing Groq API call via httpx to model {self.model}.")
-        import httpx
-        
-        openai_tools = [
+    def get_openai_tools(self) -> list:
+        return [
             {
                 "type": "function",
                 "function": {
@@ -337,6 +310,10 @@ class GroqLLMClient:
             }
         ]
 
+    def generate(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None, mode: str = None) -> LLMResult:
+        logger.info(f"Executing Groq API call via httpx to model {self.model}.")
+        import httpx
+        
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -348,14 +325,15 @@ class GroqLLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            "temperature": 0.1
+            "temperature": 0.1,
+            "max_tokens": 150 # Strict completion cap
         }
         
         if response_format:
             payload["response_format"] = response_format
             
         if tools:
-            payload["tools"] = openai_tools
+            payload["tools"] = self.get_openai_tools()
             payload["tool_choice"] = "auto"
             
         url = "https://api.groq.com/openai/v1/chat/completions"
@@ -384,4 +362,52 @@ class GroqLLMClient:
             
         except Exception as e:
             logger.error(f"Groq API HTTP Request failed: {e}")
+            raise e
+
+    def generate_stream(self, system_prompt: str, user_message: str, tools: list = None, response_format: dict = None):
+        logger.info(f"Executing Groq streaming API call via httpx to model {self.model}.")
+        import httpx
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            "temperature": 0.1,
+            "max_tokens": 150, # Enforce strict max_tokens cap
+            "stream": True
+        }
+        
+        if response_format:
+            payload["response_format"] = response_format
+            
+        if tools:
+            payload["tools"] = self.get_openai_tools()
+            payload["tool_choice"] = "auto"
+            
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                with client.stream("POST", url, headers=headers, json=payload) as r:
+                    r.raise_for_status()
+                    for line in r.iter_lines():
+                        if line.startswith("data: "):
+                            data_str = line[len("data: "):]
+                            if data_str.strip() == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(data_str)
+                                choice = chunk["choices"][0]
+                                delta = choice.get("delta", {})
+                                yield delta
+                            except Exception:
+                                continue
+        except Exception as e:
+            logger.error(f"Groq stream request failed: {e}")
             raise e

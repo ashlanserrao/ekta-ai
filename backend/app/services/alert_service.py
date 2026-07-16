@@ -1,112 +1,84 @@
 import json
 import logging
+import re
+from typing import List, Tuple
 from backend.app.config import settings
+from backend.app.llm_client import MockLLMClient
 from backend.app.database import get_db_connection
-from backend.app.llm_client import GeminiLLMClient, MockLLMClient
+from backend.app.models import PlainLanguageAlert
 
-logger = logging.getLogger("alert_service")
+logger = logging.getLogger("services.alert")
 
-# Caching dict for LLM generated alerts
+# Local cache for translated alerts (keyed by anomaly serialization)
 ALERT_CACHE = {}
 
-def get_deterministic_alert_fallback(alert_data: dict) -> tuple[str, str]:
-    """Helper to build fallback message and recommended action based on templates."""
-    alert_type = alert_data.get("type")
-    severity = alert_data.get("severity")
-    
-    if alert_type == "zone":
-        name = alert_data.get("name")
-        density = alert_data.get("density", 0.0)
-        current_crowd = alert_data.get("current_crowd", 0)
-        density_pct = int(density * 100)
-        
+def get_deterministic_alert_fallback(anomaly: dict) -> Tuple[str, str]:
+    """Generates standard deterministic alert messages if LLM service is offline."""
+    if anomaly.get("type") == "zone":
+        name = anomaly.get("name", "Unknown Zone")
+        density = anomaly.get("density", 0.0)
+        current = anomaly.get("current_crowd", 0)
+        severity = anomaly.get("severity", "info")
         if severity == "critical":
-            message = f"Critical congestion in {name} ({density_pct}% density, {current_crowd} occupants)."
-            action = f"De-escalate crowd: redirect entries away from gate associated with {name}. Dispatch stewards to guide crowds to adjacent, less dense zones."
+            msg = f"[System Alert] Critical crowd surge detected at {name}. Occupancy has reached {int(density*100)}% capacity ({current} fans)."
+            act = "[Steward Action] Immediately halt incoming ticket validation at adjacent turnstiles. Re-route arrival streams toward alternative entrances and deploy crowd control officers."
         else:
-            message = f"Moderate congestion building in {name} ({density_pct}% density)."
-            action = "Monitor crowd flow rate. Ensure secondary emergency paths are clear."
-            
-    elif alert_type == "gate":
-        name = alert_data.get("name")
-        status = alert_data.get("status")
-        
+            msg = f"[System Alert] Crowd density is climbing at {name}, now at {int(density*100)}%."
+            act = "[Steward Action] Activate secondary warning signage and instruct stewards to monitor local walkways for bottlenecks."
+    elif anomaly.get("type") == "gate":
+        name = anomaly.get("name", "Unknown Gate")
+        status = anomaly.get("status", "open")
         if status == "closed":
-            message = f"{name} is currently CLOSED."
-            action = "Ensure directional display monitors redirect arrivals to the closest open gate."
-        else: # emergency_only
-            message = f"{name} is set to EMERGENCY EXIT ONLY."
-            action = "Inform shuttle controllers and security personnel immediately. Prevent inbound fans from queueing."
-            
-    else: # normal info alert
-        message = "All stadium zones and gates are operating within normal parameters."
-        action = "Maintain standard entry checkpoints monitoring."
-        
-    return message, action
+            msg = f"[System Alert] Checkpoint status change: {name} is CLOSED."
+            act = "Activate digital detour guidance screens. Direct arriving spectators to nearest open gate immediately."
+        else:
+            msg = f"[System Alert] Access restriction: {name} has transitioned to EMERGENCY EXIT ONLY."
+            act = "Coordinate with emergency response units and notify nearby shuttle loops to suspend drops at this gate."
+    else:
+        msg = "[System Alert] General operational alert triggered."
+        act = "[Steward Action] Maintain standard stadium surveillance checks."
+    return msg, act
 
 def extract_and_parse_json(text: str) -> dict:
-    """Robust parser to extract and load JSON from LLM responses."""
-    import re
-    text_clean = text.strip()
-    
-    # 1. Try direct parsing first
-    try:
-        return json.loads(text_clean)
-    except Exception:
-        pass
-        
-    # 2. Try to find json block wrapped in markdown ```json ... ```
-    pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
-    match = re.search(pattern, text_clean)
+    """Helper to cleanly parse JSON dictionary output block from raw LLM responses."""
+    # Find JSON blocks
+    match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         try:
-            return json.loads(match.group(1).strip())
+            return json.loads(match.group(0))
         except Exception:
             pass
-            
-    # 3. Fallback: Search for the first '{' and last '}' to extract raw JSON
-    first_curly = text_clean.find('{')
-    last_curly = text_clean.rfind('}')
-    if first_curly != -1 and last_curly != -1 and last_curly > first_curly:
-        json_candidate = text_clean[first_curly:last_curly+1]
-        try:
-            return json.loads(json_candidate)
-        except Exception:
-            pass
-            
-    raise ValueError("Could not locate a valid JSON structure in response.")
+    try:
+        return json.loads(text)
+    except Exception as e:
+        raise ValueError(f"Failed parsing JSON from text: {e}")
 
-def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
+def generate_alert_with_llm(anomaly: dict, client=None) -> Tuple[str, str]:
+    """Translates a raw anomaly dictionary into natural language message and steward recommendation."""
     from backend.app.services.orchestrator import execute_with_retry_and_circuit_breaker
     
-    # 1. Check Cache
-    cache_key = (
-        alert_data.get("type"),
-        alert_data.get("id"),
-        alert_data.get("status"),
-        alert_data.get("severity"),
-        alert_data.get("density"),
-        alert_data.get("current_crowd")
-    )
+    cache_key = f"{anomaly.get('id')}_{anomaly.get('status', '')}_{anomaly.get('density', 0.0)}"
     if cache_key in ALERT_CACHE:
         return ALERT_CACHE[cache_key]
-        
-    fallback_msg, fallback_action = get_deterministic_alert_fallback(alert_data)
+
+    fallback_msg, fallback_action = get_deterministic_alert_fallback(anomaly)
     
-    # 2. Get LLM client & run alert generation with failover
     system_prompt = (
         "You are EktaAI, an operational intelligence engine for FIFA World Cup 2026. "
-        "You translate raw, structured stadium sensor data into professional, clear plain-language alerts "
-        "and action items. Always return response in JSON format with keys: message, recommended_action."
+        "You translate a raw stadium sensor anomaly dictionary into a professional, clear plain-language "
+        "stadium alert message and a recommended action item for stadium stewards. "
+        "Always return response in JSON format. The response must be a JSON object containing exactly two keys: "
+        "'message' (str) and 'recommended_action' (str)."
     )
+    
     prompt = (
-        f"Sensor alert data to translate:\n"
-        f"{json.dumps(alert_data)}\n\n"
-        f"Generate a plain-language alert message and a recommended mitigation action. Return JSON format."
+        f"Raw Anomaly Details:\n"
+        f"{json.dumps(anomaly)}\n\n"
+        f"Translate into JSON with keys 'message' and 'recommended_action'."
     )
-
+    
     llm_res = None
-
+    
     # If client is injected directly, try running it
     if client is not None:
         try:
@@ -115,24 +87,7 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
             logger.error(f"Injected client alert generation failed: {e}")
 
     # Core Failover Sequence
-    # A. Try Gemini
-    if llm_res is None and settings.GEMINI_API_KEY:
-        logger.info("Alert Translation: Attempting with Gemini provider.")
-        result = execute_with_retry_and_circuit_breaker(
-            "gemini",
-            lambda: GeminiLLMClient(settings.GEMINI_API_KEY),
-            system_prompt,
-            prompt,
-            tools=[],
-            response_format={"type": "json_object"},
-            mode="alert_translation"
-        )
-        if isinstance(result, tuple) and len(result) == 2:
-            llm_res, success = result
-        else:
-            llm_res, success = None, False
-
-    # B. Try Groq
+    # A. Try Groq
     if llm_res is None and settings.GROQ_API_KEY:
         logger.info("Alert Translation: Attempting with Groq provider.")
         from backend.app.llm_client import GroqLLMClient
@@ -150,7 +105,7 @@ def generate_alert_with_llm(alert_data: dict, client=None) -> tuple[str, str]:
         else:
             llm_res, success = None, False
 
-    # C. Try Mock
+    # B. Try Mock
     if llm_res is None:
         logger.info("Alert Translation: Selecting Mock client (Fallback)")
         client_instance = MockLLMClient()
@@ -207,24 +162,7 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
     
     llm_res = None
     
-    # A. Try Gemini
-    if llm_res is None and settings.GEMINI_API_KEY:
-        logger.info("Batch Alerts: Attempting with Gemini provider.")
-        result = execute_with_retry_and_circuit_breaker(
-            "gemini",
-            lambda: GeminiLLMClient(settings.GEMINI_API_KEY),
-            system_prompt,
-            prompt,
-            tools=[],
-            response_format={"type": "json_object"},
-            mode="alert_translation"
-        )
-        if isinstance(result, tuple) and len(result) == 2:
-            llm_res, success = result
-        else:
-            llm_res, success = None, False
-
-    # B. Try Groq
+    # A. Try Groq
     if llm_res is None and settings.GROQ_API_KEY:
         logger.info("Batch Alerts: Attempting with Groq provider.")
         from backend.app.llm_client import GroqLLMClient
@@ -242,7 +180,7 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
         else:
             llm_res, success = None, False
             
-    # C. Try Mock
+    # B. Try Mock
     if llm_res is None:
         logger.info("Batch Alerts: Selecting Mock client (Fallback)")
         client_instance = MockLLMClient()
@@ -259,122 +197,68 @@ def generate_alerts_batch_with_llm(anomalies_list: list) -> list:
         result = []
         for idx, anomaly in enumerate(anomalies_list):
             if idx < len(alerts_list):
-                gen_item = alerts_list[idx]
-                msg = gen_item.get("message") or fallbacks[idx]["message"]
-                act = gen_item.get("recommended_action") or fallbacks[idx]["recommended_action"]
-                result.append({"message": msg, "recommended_action": act})
+                msg = alerts_list[idx].get("message", fallbacks[idx]["message"])
+                act = alerts_list[idx].get("recommended_action", fallbacks[idx]["recommended_action"])
+                result.append({"id": anomaly["id"], "message": msg, "recommended_action": act, "severity": anomaly["severity"]})
             else:
-                result.append(fallbacks[idx])
+                result.append({"id": anomaly["id"], "message": fallbacks[idx]["message"], "recommended_action": fallbacks[idx]["recommended_action"], "severity": anomaly["severity"]})
         return result
     except Exception as e:
-        logger.error(f"Error parsing batch LLM response: {e}. Raw response content was: {getattr(llm_res, 'reply', 'None')}. Using deterministic fallbacks.")
-        return fallbacks
+        logger.error(f"Batch alerts parsing failed: {e}. Falling back to deterministic outputs.")
+        result = []
+        for idx, anomaly in enumerate(anomalies_list):
+            result.append({"id": anomaly["id"], "message": fallbacks[idx]["message"], "recommended_action": fallbacks[idx]["recommended_action"], "severity": anomaly["severity"]})
+        return result
 
-def get_staff_alerts() -> list:
-    """Business logic for checking gate and zone anomalies and generating plain language mitigation guides."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT id, name, density, current_crowd FROM zones")
-        zones = [dict(row) for row in cursor.fetchall()]
-        
-        cursor.execute("SELECT id, name, status FROM gates")
-        gates = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-    except Exception as e:
-        logger.error(f"Database error in get_staff_alerts: {e}")
-        raise e
+def get_staff_alerts() -> List[PlainLanguageAlert]:
+    """Scans digital twin databases, triggers alerts on anomalies, and updates registry."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
-    anomalies_list = []
+    anomalies = []
     
-    # 1. Check for high density zones
-    for z in zones:
-        if z["density"] > 0.85:
-            anomalies_list.append({
-                "type": "zone",
-                "id": z["id"],
-                "name": z["name"],
-                "density": z["density"],
-                "current_crowd": z["current_crowd"],
-                "severity": "critical"
-            })
-        elif z["density"] > 0.70:
-            anomalies_list.append({
-                "type": "zone",
-                "id": z["id"],
-                "name": z["name"],
-                "density": z["density"],
-                "current_crowd": z["current_crowd"],
-                "severity": "warning"
-            })
-            
-    # 2. Check for closed gates
-    for g in gates:
-        if g["status"] == "closed":
-            anomalies_list.append({
-                "type": "gate",
-                "id": g["id"],
-                "name": g["name"],
-                "status": g["status"],
-                "severity": "warning"
-            })
-        elif g["status"] == "emergency_only":
-            anomalies_list.append({
-                "type": "gate",
-                "id": g["id"],
-                "name": g["name"],
-                "status": g["status"],
-                "severity": "critical"
-            })
-            
-    # 3. If no anomalies, return standard operational status
-    if not anomalies_list:
-        anomalies_list.append({
-            "type": "normal",
-            "severity": "info"
+    # 1. Check for closed gates
+    cursor.execute("SELECT id, name, status, congestion_level FROM gates WHERE status = 'closed'")
+    for row in cursor.fetchall():
+        anomalies.append({
+            "type": "gate",
+            "id": row["id"],
+            "name": row["name"],
+            "status": row["status"],
+            "congestion": row["congestion_level"],
+            "severity": "medium"
         })
         
-    alerts_result = []
-    uncached_items = []
+    # 2. Check for high density zones
+    cursor.execute("SELECT id, name, type, capacity, current_crowd, density FROM zones WHERE density >= 0.70")
+    for row in cursor.fetchall():
+        anomalies.append({
+            "type": "zone",
+            "id": row["id"],
+            "name": row["name"],
+            "capacity": row["capacity"],
+            "current_crowd": row["current_crowd"],
+            "density": row["density"],
+            "severity": "critical" if row["density"] >= 0.85 else "medium"
+        })
+        
+    conn.close()
     
-    # 4. Check cache
-    for anomaly in anomalies_list:
-        cache_key = (
-            anomaly.get("type"),
-            anomaly.get("id"),
-            anomaly.get("status"),
-            anomaly.get("severity"),
-            anomaly.get("density"),
-            anomaly.get("current_crowd")
-        )
+    if not anomalies:
+        return []
         
-        if cache_key in ALERT_CACHE:
-            msg, act = ALERT_CACHE[cache_key]
-            alerts_result.append({
-                "id": f"alert_{anomaly.get('type')}_{anomaly.get('id')}" if anomaly.get("type") != "normal" else "alert_normal",
-                "severity": anomaly["severity"],
+    try:
+        # Generate plain language translations in batch using GenAI engine
+        return generate_alerts_batch_with_llm(anomalies)
+    except Exception as e:
+        logger.error(f"GenAI batch alerts translation failed: {e}. Using local fallback translations.")
+        fallback_alerts = []
+        for anomaly in anomalies:
+            msg, act = get_deterministic_alert_fallback(anomaly)
+            fallback_alerts.append({
+                "id": anomaly["id"],
                 "message": msg,
-                "recommended_action": act
+                "recommended_action": act,
+                "severity": anomaly["severity"]
             })
-        else:
-            uncached_items.append((anomaly, cache_key))
-            
-    # 5. Process uncached items in a single batch request
-    if uncached_items:
-        batch_anomalies = [item[0] for item in uncached_items]
-        generated_results = generate_alerts_batch_with_llm(batch_anomalies)
-        
-        for (anomaly, cache_key), gen_item in zip(uncached_items, generated_results):
-            msg = gen_item["message"]
-            act = gen_item["recommended_action"]
-            ALERT_CACHE[cache_key] = (msg, act)
-            
-            alerts_result.append({
-                "id": f"alert_{anomaly.get('type')}_{anomaly.get('id')}" if anomaly.get("type") != "normal" else "alert_normal",
-                "severity": anomaly["severity"],
-                "message": msg,
-                "recommended_action": act
-            })
-            
-    return alerts_result
+        return fallback_alerts

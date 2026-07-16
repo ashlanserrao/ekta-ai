@@ -46,17 +46,49 @@ export default function StaffDashboard({ zones, alerts, gates, token, onLogout }
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
+          "Accept": "text/event-stream",
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ message: userMsg })
       });
       
       if (res.ok) {
-        const data = await res.json();
-        setStaffMessages(prev => [...prev, { sender: "bot", text: data.reply }]);
+        setStaffMessages(prev => [...prev, { sender: "bot", text: "" }]);
         
-        if (data.provider) {
-          setActiveProvider(data.provider);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let done = false;
+        let botReply = "";
+        
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunkStr = decoder.decode(value, { stream: !done });
+            const lines = chunkStr.split("\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.token) {
+                    botReply += data.token;
+                    setStaffMessages(prev => {
+                      const updated = [...prev];
+                      if (updated.length > 0 && updated[updated.length - 1].sender === "bot") {
+                        updated[updated.length - 1].text = botReply;
+                      }
+                      return updated;
+                    });
+                  }
+                  if (data.provider) {
+                    setActiveProvider(data.provider);
+                  }
+                } catch (e) {
+                  // Partial chunk parse error - ignore safely
+                }
+              }
+            }
+          }
         }
       } else if (res.status === 401) {
         setStaffMessages(prev => [...prev, { sender: "bot", text: "Session expired or unauthorized. Logging out..." }]);

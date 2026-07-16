@@ -15,14 +15,12 @@ class Settings(BaseSettings):
     )
 
     ENV: str = Field(default="development")
-    GEMINI_API_KEY: str = Field(default="")
     GROQ_API_KEY: str = Field(default="")
     GROQ_MODEL: str = Field(default="llama-3.3-70b-versatile")
     DATABASE_PATH: str = Field(default="")
     STADIUM_FACTS_PATH: str = Field(default="")
     
     # Circuit breaker flags (mutable)
-    GEMINI_EXHAUSTED: bool = Field(default=False)
     GROQ_EXHAUSTED: bool = Field(default=False)
 
     # Rate limit settings
@@ -42,18 +40,14 @@ class Settings(BaseSettings):
     def is_exhausted(self, provider: str) -> bool:
         """Thread-safe check to verify if a provider is rate limited/exhausted."""
         with self._cb_lock:
-            if provider == "gemini":
-                return self.GEMINI_EXHAUSTED
-            elif provider == "groq":
+            if provider == "groq":
                 return self.GROQ_EXHAUSTED
             return False
 
     def set_exhausted(self, provider: str, value: bool = True):
         """Thread-safe update of the exhaustion state of a provider."""
         with self._cb_lock:
-            if provider == "gemini":
-                self.GEMINI_EXHAUSTED = value
-            elif provider == "groq":
+            if provider == "groq":
                 self.GROQ_EXHAUSTED = value
 
     @field_validator("ALLOWED_ORIGINS", mode="before")

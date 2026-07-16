@@ -28,6 +28,10 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing database...")
     init_db()
     
+    logger.info("Preloading RAG Embedding Model...")
+    from backend.app.rag import get_rag
+    get_rag()
+    
     logger.info("Starting Digital Twin Simulator...")
     if active_simulator is None or not active_simulator.is_alive():
         active_simulator = StadiumSimulator()

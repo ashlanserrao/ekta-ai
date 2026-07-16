@@ -11,7 +11,7 @@ logger = logging.getLogger("routers.chat")
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
-@router.post("/fan", response_model=ChatResponse)
+@router.post("/fan")
 async def chat_fan(request: FanChatRequest, req: Request):
     # Security: Sanitization & Input Validation
     if not request.message or not request.message.strip():
@@ -35,6 +35,16 @@ async def chat_fan(request: FanChatRequest, req: Request):
         )
         
     try:
+        accept_header = req.headers.get("accept", "")
+        if "text/event-stream" in accept_header:
+            from fastapi.responses import StreamingResponse
+            from backend.app.services.orchestrator import stream_stadium_assistant
+            
+            def sse_generator():
+                for chunk in stream_stadium_assistant(sanitized_message, is_staff=False):
+                    yield f"data: {chunk}\n\n"
+            return StreamingResponse(sse_generator(), media_type="text/event-stream")
+            
         response_data = query_stadium_assistant(sanitized_message, is_staff=False)
         return response_data
     except HTTPException as he:
@@ -43,7 +53,7 @@ async def chat_fan(request: FanChatRequest, req: Request):
         logger.error(f"Error in chat_fan: {e}")
         raise HTTPException(status_code=500, detail="Internal assistant error.")
 
-@router.post("/staff", response_model=ChatResponse)
+@router.post("/staff")
 async def chat_staff(
     request: StaffChatRequest,
     req: Request,
@@ -66,6 +76,16 @@ async def chat_staff(
     sanitized_message = request.message.replace("<", "&lt;").replace(">", "&gt;").strip()
     
     try:
+        accept_header = req.headers.get("accept", "")
+        if "text/event-stream" in accept_header:
+            from fastapi.responses import StreamingResponse
+            from backend.app.services.orchestrator import stream_stadium_assistant
+            
+            def sse_generator():
+                for chunk in stream_stadium_assistant(sanitized_message, is_staff=True):
+                    yield f"data: {chunk}\n\n"
+            return StreamingResponse(sse_generator(), media_type="text/event-stream")
+            
         response_data = query_stadium_assistant(sanitized_message, is_staff=True)
         return response_data
     except HTTPException as he:
