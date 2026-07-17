@@ -11,6 +11,28 @@ const getProviderBadge = (provider) => {
   return <span className="provider-badge offline">🔌 Offline Mode</span>;
 };
 
+// Example prompts shown as clickable chips in the empty chat, localized per language.
+const PROMPT_SUGGESTIONS = {
+  en: [
+    "♿ Wheelchair route from Gate 2 to Section 204",
+    "🚻 Where are the accessible restrooms?",
+    "🍽️ Any halal food options?",
+  ],
+  es: [
+    "♿ Ruta accesible de Gate 1 a Section 105",
+    "🚻 ¿Dónde están los baños accesibles?",
+    "🍽️ ¿Opciones de comida halal?",
+  ],
+  fr: [
+    "♿ Itinéraire accessible de Porte 3 à Section 305",
+    "🚻 Où sont les toilettes accessibles ?",
+    "🍽️ Options de nourriture halal ?",
+  ],
+};
+
+// Strip the leading emoji so the chat receives a clean prompt string.
+const chipText = (chip) => chip.replace(/^[^\p{L}\p{N}]+/u, "").trim();
+
 export default function FanAssistant({ gates, zones }) {
   // Chat state - Fan
   const [fanMessages, setFanMessages] = useState([
@@ -40,12 +62,12 @@ export default function FanAssistant({ gates, zones }) {
     speakText
   } = useVoice(fanLanguage, setFanInput);
 
-  // Send message - Fan Assistant
-  const handleFanSend = async (e) => {
-    e.preventDefault();
-    if (!fanInput.trim()) return;
-    
-    const userMsg = fanInput;
+  // Send message - Fan Assistant (overrideText lets prompt chips send directly)
+  const handleFanSend = async (e, overrideText) => {
+    if (e) e.preventDefault();
+    const userMsg = (overrideText ?? fanInput).trim();
+    if (!userMsg || chatLoading) return;
+
     setFanMessages(prev => [...prev, { sender: "user", text: userMsg }]);
     setFanInput("");
     setChatLoading(true);
@@ -196,6 +218,20 @@ export default function FanAssistant({ gates, zones }) {
               {msg.text}
             </div>
           ))}
+          {!fanMessages.some(m => m.sender === "user") && !chatLoading && (
+            <div className="prompt-chips" role="group" aria-label="Example questions">
+              {(PROMPT_SUGGESTIONS[fanLanguage] || PROMPT_SUGGESTIONS.en).map((chip, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="prompt-chip"
+                  onClick={() => handleFanSend(null, chipText(chip))}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
           {chatLoading && <div className="message-bubble bot typing-indicator">Assistant is typing...</div>}
           {rateLimitMessage && <div className="rate-limit-alert">{rateLimitMessage}</div>}
           <div ref={chatEndRef} />

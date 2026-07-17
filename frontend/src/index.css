@@ -860,3 +860,30 @@ body.large-text .map-legend, body.large-text .info-panel, body.large-text p {
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
+
+/* --- Prompt suggestion chips (empty chat state) --- */
+.prompt-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+  animation: slideIn 0.3s ease;
+}
+.prompt-chip {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-speed) ease;
+}
+.prompt-chip:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
