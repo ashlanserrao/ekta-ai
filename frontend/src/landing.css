@@ -1,7 +1,7 @@
 /* ============================================================
    LANDING PAGE
    ============================================================ */
-.landing { min-height: 100vh; }
+.landing { min-height: 100vh; background: var(--bg-primary); position: relative; }
 
 .landing-nav {
   display: flex;
@@ -9,11 +9,11 @@
   align-items: center;
   padding: 1.1rem 2.5rem;
   border-bottom: 1px solid var(--border-color);
-  background: rgba(10, 13, 20, 0.85);
-  backdrop-filter: blur(10px);
+  background: var(--bg-primary);
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 .landing-nav-actions { display: flex; gap: 0.75rem; align-items: center; }
 
@@ -23,8 +23,14 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 2.5rem 1.5rem 4rem;
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37, 99, 235, 0.18), transparent 70%);
+  padding: 3rem 1.5rem 4rem;
+  /* Opaque base + glow so nothing shows through, and containment so the 3D
+     stadium's transformed layers can't paint over the sections below. */
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37, 99, 235, 0.18), transparent 70%), var(--bg-primary);
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  overflow: hidden;
 }
 .hero-tagline {
   font-size: clamp(2.4rem, 6vw, 4.2rem);
@@ -108,7 +114,7 @@
 }
 
 /* --- Sections --- */
-.landing-section { padding: 3.5rem 1.5rem; max-width: 1200px; margin: 0 auto; text-align: center; }
+.landing-section { padding: 3.5rem 1.5rem; max-width: 1200px; margin: 0 auto; text-align: center; position: relative; z-index: 2; }
 .landing-section.alt { background: rgba(255, 255, 255, 0.015); border-radius: 24px; }
 .section-title { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 700; }
 .section-sub { color: var(--text-secondary); margin: 0.5rem 0 2.25rem; }
@@ -138,7 +144,9 @@
 .landing-footer {
   border-top: 1px solid var(--border-color);
   padding: 2.5rem 2.5rem 1.5rem;
-  background: rgba(10, 13, 20, 0.6);
+  background: var(--bg-primary);
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 2rem;
