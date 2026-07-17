@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from "react";
-import FanAssistant from "./components/FanAssistant";
 import StaffDashboard from "./components/StaffDashboard";
 import Landing from "./components/Landing";
+import FanApp from "./components/fan/FanApp";
 import { API_BASE } from "./lib/api";
+
+const DEFAULT_FAN_PROFILE = {
+  fullName: "Guest Fan",
+  email: "test@ektaai.app",
+  city: "—",
+  favoriteTeam: "Argentina",
+  drink: "No preference",
+  dietary: "None",
+  homeGate: "Gate 1",
+  language: "English",
+  accessibility: false,
+};
 
 export default function App() {
   // Top-level screen: 'landing' (marketing + auth) or 'app' (fan/staff workspace)
@@ -27,10 +39,20 @@ export default function App() {
   // JWT Token state (loaded strictly from sessionStorage)
   const [token, setToken] = useState(() => sessionStorage.getItem("staff_token") || "");
 
-  const enterApp = ({ mode, token: newToken }) => {
+  // Fan profile (from onboarding, localStorage, or a demo default)
+  const [fanProfile, setFanProfile] = useState(null);
+
+  const enterApp = ({ mode, token: newToken, profile }) => {
     if (newToken) {
       sessionStorage.setItem("staff_token", newToken);
       setToken(newToken);
+    }
+    if (mode === "fan") {
+      let prof = profile;
+      if (!prof) {
+        try { prof = JSON.parse(localStorage.getItem("ekta_fan_profile") || "null"); } catch { prof = null; }
+      }
+      setFanProfile(prof || DEFAULT_FAN_PROFILE);
     }
     setViewMode(mode);
     setScreen("app");
@@ -114,6 +136,22 @@ export default function App() {
   // Landing page
   if (screen === "landing") {
     return <Landing onAuthenticated={enterApp} />;
+  }
+
+  // Fan workspace: sidebar layout, no top navbar
+  if (viewMode === "fan") {
+    return (
+      <FanApp
+        gates={gates}
+        zones={zones}
+        profile={fanProfile}
+        onLogout={handleLogout}
+        highContrast={highContrast}
+        largeText={largeText}
+        setHighContrast={setHighContrast}
+        setLargeText={setLargeText}
+      />
+    );
   }
 
   const initialLoading = gates.length === 0 || zones.length === 0;
@@ -216,11 +254,7 @@ export default function App() {
 
       {/* Main Container */}
       <main role="main" id="main">
-        {viewMode === "fan" ? (
-          initialLoading ? <LoadingSpinner /> : <FanAssistant gates={gates} zones={zones} />
-        ) : !token ? (
-          <LoadingSpinner />
-        ) : initialLoading ? (
+        {!token || initialLoading ? (
           <LoadingSpinner />
         ) : (
           <StaffDashboard zones={zones} alerts={alerts} gates={gates} token={token} onLogout={handleLogout} />
