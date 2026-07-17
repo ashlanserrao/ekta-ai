@@ -111,11 +111,14 @@ def format_tool_brief(executed_results: list) -> str:
                     f"({res['current_crowd']} occupants out of {res['capacity']} capacity)."
                 )
         elif name == "get_gate_status":
-            gate_lines = [
-                f"- {gate['name']}: {gate['status'].upper()} (Congestion: {gate['congestion_level']})"
-                for gate in res
-            ]
-            parts.append("Here is the current live status of the stadium gates:\n" + "\n".join(gate_lines))
+            if "error" in res:
+                parts.append(f"Unable to retrieve gate status: {res['error']}")
+            else:
+                gate_lines = [
+                    f"- {gate['name']}: {gate['status'].upper()} (Congestion: {gate['congestion_level']})"
+                    for gate in res
+                ]
+                parts.append("Here is the current live status of the stadium gates:\n" + "\n".join(gate_lines))
         elif name == "get_route":
             if "error" in res:
                 parts.append(f"Routing failed: {res['error']}")
@@ -292,7 +295,29 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
 def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=None, history: list = None):
     """
     Generator yielding Server-Sent Events (SSE) compatible JSON strings for chat streaming.
+
+    Once the SSE response has started, an uncaught exception can no longer be turned
+    into a clean HTTP error — the ASGI server just aborts the connection, which the
+    browser surfaces as a raw network error instead of a chat message. The inner
+    generator already degrades to MockLLMClient on known LLM failures; this wrapper
+    is the last-resort net for anything else (e.g. RAG lookup or tool-result
+    formatting failures) so the user always gets a message, never a dead connection.
     """
+    try:
+        yield from _stream_stadium_assistant_inner(user_message, is_staff, client, history)
+    except Exception as e:
+        logger.error(f"Unhandled error in stream_stadium_assistant: {e}")
+        fallback = "I'm having trouble processing that right now. Please try again in a moment."
+        for word in fallback.split(" "):
+            yield json.dumps({
+                "token": word + " ",
+                "provider": "mock",
+                "tool_called": None,
+                "route": None
+            })
+
+
+def _stream_stadium_assistant_inner(user_message: str, is_staff: bool = False, client=None, history: list = None):
     rag = get_rag()
     rag_results = rag.retrieve(user_message, top_k=3)
     
@@ -351,6 +376,8 @@ def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=N
                 reply = _sanitize_leak(retry.reply or reply)
         except Exception as e:
             logger.error(f"Tool-leak retry failed: {e}")
+            if final_provider == "groq":
+                settings.set_exhausted("groq", True)
             reply = _sanitize_leak(reply)
 
     # No tool calls: stream the (already generated) direct answer word by word.
