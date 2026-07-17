@@ -170,6 +170,7 @@ export default function FanAssistant({ gates, zones }) {
             >
               <option value="en">English 🇬🇧</option>
               <option value="es">Español 🇪🇸</option>
+              <option value="fr">Français 🇫🇷</option>
             </select>
             
             {/* Text-to-speech toggle */}
@@ -204,7 +205,7 @@ export default function FanAssistant({ gates, zones }) {
           <input 
             type="text" 
             className="chat-input"
-            placeholder={fanLanguage === "es" ? "Escribe un mensaje..." : "Ask Gate details, route, accessibility support..."}
+            placeholder={fanLanguage === "es" ? "Escribe un mensaje..." : fanLanguage === "fr" ? "Écrivez un message..." : "Ask Gate details, route, accessibility support..."}
             value={fanInput}
             onChange={(e) => setFanInput(e.target.value)}
             aria-label="Type your message here"

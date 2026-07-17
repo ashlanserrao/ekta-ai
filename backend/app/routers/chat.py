@@ -21,9 +21,12 @@ async def chat_fan(request: FanChatRequest, req: Request):
         )
     sanitized_message = request.message.replace("<", "&lt;").replace(">", "&gt;").strip()
     
-    # Validate language parameter
+    # Normalize language hint. The live LLM matches the message's language directly;
+    # this set governs first-class support (UI, voice, offline mock). Unknown codes
+    # fall back to English rather than being rejected.
+    SUPPORTED_LANGUAGES = {"en", "es", "fr", "pt", "de"}
     lang = request.language.strip().lower() if request.language else "en"
-    if lang not in ["en", "es"]:
+    if lang not in SUPPORTED_LANGUAGES:
         lang = "en"
     
     # Rate Limiting

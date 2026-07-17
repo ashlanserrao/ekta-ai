@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 
+const LOCALE_MAP = { en: "en-US", es: "es-ES", fr: "fr-FR" };
+const toLocale = (lang) => LOCALE_MAP[lang] || "en-US";
+
 export function useVoice(fanLanguage, setFanInput) {
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -11,7 +14,7 @@ export function useVoice(fanLanguage, setFanInput) {
     const rec = new SpeechRecognition();
     rec.continuous = false;
     rec.interimResults = false;
-    rec.lang = fanLanguage === "es" ? "es-ES" : "en-US";
+    rec.lang = toLocale(fanLanguage);
 
     rec.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
@@ -34,7 +37,7 @@ export function useVoice(fanLanguage, setFanInput) {
   // Synchronize language code changes
   useEffect(() => {
     if (recognitionRef.current) {
-      recognitionRef.current.lang = fanLanguage === "es" ? "es-ES" : "en-US";
+      recognitionRef.current.lang = toLocale(fanLanguage);
     }
   }, [fanLanguage]);
 
@@ -56,7 +59,7 @@ export function useVoice(fanLanguage, setFanInput) {
     if (!voiceEnabled || !window.speechSynthesis) return;
     window.speechSynthesis.cancel(); // Cancel current utterance
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang === "es" ? "es-ES" : "en-US";
+    utterance.lang = toLocale(lang);
     window.speechSynthesis.speak(utterance);
   };
 

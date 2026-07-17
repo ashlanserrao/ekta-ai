@@ -109,8 +109,9 @@ class MockLLMClient:
         tool_calls = []
         reply = ""
 
-        # Determine language (Spanish if query contains key Spanish words)
+        # Determine language (offline heuristic; the live LLM matches language natively)
         is_spanish = any(w in normalized_msg for w in ["baños", "comida", "como", "llego", "en silla", "dónde", "donde", "restaurante", "ruta", "puerta"])
+        is_french = any(w in normalized_msg for w in ["toilettes", "où", "où est", "j'arrive", "fauteuil roulant", "fauteuil", "nourriture", "itinéraire", "puis-je", "bonjour", "s'il vous", "aller", "comment aller"])
 
         # 1. Check for Route Planning Queries
         locations = {
@@ -118,6 +119,15 @@ class MockLLMClient:
             "gate 2": "Gate 2",
             "gate 3": "Gate 3",
             "gate 4": "Gate 4",
+            # French/Spanish gate aliases (Porte / Puerta N -> Gate N)
+            "porte 1": "Gate 1",
+            "porte 2": "Gate 2",
+            "porte 3": "Gate 3",
+            "porte 4": "Gate 4",
+            "puerta 1": "Gate 1",
+            "puerta 2": "Gate 2",
+            "puerta 3": "Gate 3",
+            "puerta 4": "Gate 4",
             "section 102": "Section 102 Entry",
             "section 105": "Section 105 Entry",
             "section 204": "Section 204 Entry",
@@ -133,10 +143,10 @@ class MockLLMClient:
             if key_norm in msg_norm:
                 found_keys.append(key)
                 
-        is_route_query = any(w in normalized_msg for w in ["route", "get to", "go from", "directions", "how to", "how do i", "map", "llego", "ruta", "ir de", "ir a", "cómo"])
-        
+        is_route_query = any(w in normalized_msg for w in ["route", "get to", "go from", "directions", "how to", "how do i", "map", "llego", "ruta", "ir de", "ir a", "cómo", "aller", "itinéraire", "vers", "comment aller"])
+
         if is_route_query and len(found_keys) > 0:
-            accessibility_required = any(w in normalized_msg for w in ["wheelchair", "accessible", "disabled", "ramp", "elevator", "stroller", "silla de ruedas", "acceso", "rampa", "ascensor"])
+            accessibility_required = any(w in normalized_msg for w in ["wheelchair", "accessible", "disabled", "ramp", "elevator", "stroller", "silla de ruedas", "acceso", "rampa", "ascensor", "fauteuil", "fauteuil roulant", "rampe", "ascenseur"])
             
             from_location = "Gate 1"
             to_location = locations[found_keys[0]]
@@ -165,7 +175,9 @@ class MockLLMClient:
                 "accessibility_required": accessibility_required
             }))
             
-            if is_spanish:
+            if is_french:
+                reply = f"J'ai tracé un itinéraire {'accessible ' if accessibility_required else ''}de {from_location} à {to_location}. Je l'ai chargé sur la carte interactive."
+            elif is_spanish:
                 reply = f"He trazado una ruta accesible de {from_location} a {to_location}. He cargado la ruta accesible en el mapa interactivo."
             else:
                 reply = f"Sure! I have generated a {'step-free accessible ' if accessibility_required else 'standard '}route from {from_location} to {to_location}. I've highlighted the path on your map."
@@ -189,6 +201,10 @@ class MockLLMClient:
             tool_calls.append(ToolCall("get_crowd_density", {"zone": target_zone}))
             if "staff" in system_prompt.lower() or "operational" in system_prompt.lower():
                 reply = f"[STAFF OPERATIONAL BRIEF] Zone {target_zone} (South Concourse C) is at 90% capacity. Congestion status is active."
+            elif is_french:
+                reply = "Le niveau d'affluence dans le Concourse C Sud est actuellement à 90% de sa capacité."
+            elif is_spanish:
+                reply = "El nivel de afluencia en South Concourse C está actualmente al 90% de su capacidad."
             else:
                 reply = f"The crowd level in South Concourse C is currently at 90% capacity."
 
@@ -204,7 +220,12 @@ class MockLLMClient:
                 rag_results = rag.retrieve(user_message, top_k=1)
                 if rag_results and rag_results[0]["similarity"] > 0:
                     best_match = rag_results[0]
-                    if is_spanish:
+                    if is_french:
+                        if "toilettes" in normalized_msg:
+                            reply = "Les toilettes accessibles se trouvent à tous les niveaux, près des sections 104, 112, 205, 220, 304 et 318."
+                        else:
+                            reply = f"D'après les informations du stade : {best_match['content']}"
+                    elif is_spanish:
                         if "baños" in normalized_msg or "banos" in normalized_msg:
                             reply = "Los baños accesibles están en todos los niveles cerca de las secciones 104, 112, 205, 220, 304 y 318."
                         elif "halal" in normalized_msg or "vegetariana" in normalized_msg:

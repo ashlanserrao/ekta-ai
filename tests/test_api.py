@@ -123,6 +123,33 @@ def test_chat_endpoints():
         assert "open" in gate_data["reply"].lower()
         assert "{" not in gate_data["reply"]
 
+def test_mock_french_route_and_language():
+    # Offline mock must handle French routing + language detection (live LLM matches natively)
+    from backend.app.llm_client import MockLLMClient
+    mock = MockLLMClient()
+    res = mock.generate(
+        "You are the FAN ASSISTANT.",
+        "Comment aller de Gate 1 à Section 105 en fauteuil roulant ?"
+    )
+    assert res.tool_calls and res.tool_calls[0].name == "get_route"
+    assert res.tool_calls[0].args.get("accessibility_required") is True
+    assert "itinéraire" in res.reply.lower()
+
+
+def test_fan_chat_french_language_accepted():
+    from backend.app.middleware.rate_limit import chat_limiter
+    chat_limiter.request_timestamps.clear()
+    with TestClient(app) as client:
+        res = client.post(
+            "/api/v1/chat/fan",
+            json={"message": "Comment aller de Gate 2 à Section 204 ?", "language": "fr"}
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["tool_called"] == "get_route"
+        assert "itinéraire" in data["reply"].lower()
+
+
 def test_rate_limiting():
     # Set limit low to quickly trigger limit or just hit it repeatedly
     # Config is 5 requests per 10 seconds. Let's make 6 requests.
