@@ -21,7 +21,11 @@ export default function App() {
   const [gates, setGates] = useState([]);
   const [zones, setZones] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  
+
+  // Live connection status + ticking clock for the context bar
+  const [connected, setConnected] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+
   // JWT Token state (loaded strictly from sessionStorage)
   const [token, setToken] = useState(() => sessionStorage.getItem("staff_token") || "");
 
@@ -39,6 +43,7 @@ export default function App() {
         const data = JSON.parse(event.data);
         setGates(data.gates);
         setZones(data.zones);
+        setConnected(true);
       } catch (err) {
         console.error("Error parsing SSE status event:", err);
       }
@@ -46,11 +51,18 @@ export default function App() {
 
     eventSource.onerror = (err) => {
       console.error("EventSource connection error:", err);
+      setConnected(false);
     };
 
     return () => {
       eventSource.close();
     };
+  }, []);
+
+  // Tick the context-bar clock once per second
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   // 2. Poll for staff alerts (Requires auth header)
@@ -214,7 +226,22 @@ export default function App() {
           )}
         </div>
       </header>
-      
+
+      {/* Live context bar */}
+      <div className="context-bar" role="status" aria-live="polite">
+        <div className="context-left">
+          <span className={`live-dot ${connected ? "live" : "down"}`} aria-hidden="true"></span>
+          <span className="context-status">{connected ? "Twin Live" : "Reconnecting…"}</span>
+          <span className="context-sep">·</span>
+          <span className="context-meta">FIFA World Cup 2026 · Match Day</span>
+          <span className="context-sep context-hide-sm">·</span>
+          <span className="context-meta context-hide-sm">{zones.length} zones · {gates.length} gates monitored</span>
+        </div>
+        <div className="context-right">
+          <span className="context-clock">{now.toLocaleTimeString()}</span>
+        </div>
+      </div>
+
       {/* Main Container */}
       <main role="main" id="main">
         {viewMode === "fan" ? (

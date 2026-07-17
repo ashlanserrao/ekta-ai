@@ -1,5 +1,4 @@
 import sqlite3
-import json
 from backend.app.config import Config
 
 def get_db_connection():
@@ -38,16 +37,6 @@ def init_db():
     )
     """)
     
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS routes (
-        id TEXT PRIMARY KEY,
-        from_location TEXT NOT NULL,
-        to_location TEXT NOT NULL,
-        path_nodes TEXT NOT NULL, -- JSON list of strings
-        is_accessible INTEGER NOT NULL -- 0 or 1
-    )
-    """)
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
@@ -97,29 +86,6 @@ def init_db():
         cursor.executemany(
             "INSERT OR IGNORE INTO gates (id, name, status, congestion_level, zone_id) VALUES (?, ?, ?, ?, ?)",
             gates_data
-        )
-        
-        # Routes (Legacy fallback support)
-        routes_data = [
-            # Gate 1 to Section 102
-            ("route_1_acc", "Gate 1", "Section 102", json.dumps(["Gate 1", "North Concourse Ramp A", "Section 102 Entry"]), 1),
-            ("route_1_std", "Gate 1", "Section 102", json.dumps(["Gate 1", "North Main Stairs", "Section 102 Entry"]), 0),
-            
-            # Gate 2 to Section 204
-            ("route_2_acc", "Gate 2", "Section 204", json.dumps(["Gate 2", "East elevator block", "Section 204 Entry"]), 1),
-            ("route_2_std", "Gate 2", "Section 204", json.dumps(["Gate 2", "East Escalator A", "Section 204 Entry"]), 0),
-            
-            # Gate 3 to Section 305
-            ("route_3_acc", "Gate 3", "Section 305", json.dumps(["Gate 3", "South elevator B", "Section 305 Entry"]), 1),
-            ("route_3_std", "Gate 3", "Section 305", json.dumps(["Gate 3", "South Concourse Stairs 4", "Section 305 Entry"]), 0),
-            
-            # Gate 4 to Section 105
-            ("route_4_acc", "Gate 4", "Section 105", json.dumps(["Gate 4", "West Concourse level path", "Section 105 Entry"]), 1),
-            ("route_4_std", "Gate 4", "Section 105", json.dumps(["Gate 4", "West Escalator B", "Section 105 Entry"]), 0)
-        ]
-        cursor.executemany(
-            "INSERT OR IGNORE INTO routes (id, from_location, to_location, path_nodes, is_accessible) VALUES (?, ?, ?, ?, ?)",
-            routes_data
         )
         conn.commit()
 

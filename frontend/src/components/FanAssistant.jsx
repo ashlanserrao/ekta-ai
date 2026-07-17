@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import InteractiveMap from "./InteractiveMap";
 import { useVoice } from "../hooks/useVoice";
+import { useChatStream } from "../hooks/useChatStream";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -62,6 +63,8 @@ export default function FanAssistant({ gates, zones }) {
     speakText
   } = useVoice(fanLanguage, setFanInput);
 
+  const readChatStream = useChatStream();
+
   // Send message - Fan Assistant (overrideText lets prompt chips send directly)
   const handleFanSend = async (e, overrideText) => {
     if (e) e.preventDefault();
@@ -102,57 +105,24 @@ export default function FanAssistant({ gates, zones }) {
       
       if (res.ok) {
         setFanMessages(prev => [...prev, { sender: "bot", text: "" }]);
-        
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let done = false;
+
         let botReply = "";
-        
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-          if (value) {
-            const chunkStr = decoder.decode(value, { stream: !done });
-            const lines = chunkStr.split("\n");
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.reset) {
-                    // Discard any leaked first-pass tool-call text before the real answer.
-                    botReply = "";
-                    setFanMessages(prev => {
-                      const updated = [...prev];
-                      if (updated.length > 0 && updated[updated.length - 1].sender === "bot") {
-                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: "" };
-                      }
-                      return updated;
-                    });
-                  }
-                  if (data.token) {
-                    botReply += data.token;
-                    setFanMessages(prev => {
-                      const updated = [...prev];
-                      if (updated.length > 0 && updated[updated.length - 1].sender === "bot") {
-                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: botReply };
-                      }
-                      return updated;
-                    });
-                  }
-                  if (data.provider) {
-                    setActiveProvider(data.provider);
-                  }
-                  if (data.route) {
-                    setActiveRoute(data.route);
-                  }
-                } catch {
-                  // Partial chunk parse error - ignore safely
-                }
-              }
-            }
+        const setLastBotText = (text) => setFanMessages(prev => {
+          const updated = [...prev];
+          if (updated.length > 0 && updated[updated.length - 1].sender === "bot") {
+            updated[updated.length - 1] = { ...updated[updated.length - 1], text };
           }
-        }
-        
+          return updated;
+        });
+
+        await readChatStream(res, {
+          // Discard any leaked first-pass tool-call text before the real answer.
+          onReset: () => { botReply = ""; setLastBotText(""); },
+          onToken: (token) => { botReply += token; setLastBotText(botReply); },
+          onProvider: setActiveProvider,
+          onRoute: setActiveRoute,
+        });
+
         speakText(botReply, fanLanguage);
       } else {
         setFanMessages(prev => [...prev, { sender: "bot", text: "Sorry, I'm experiencing troubles connecting to the database." }]);
