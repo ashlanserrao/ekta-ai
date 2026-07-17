@@ -36,6 +36,32 @@ class Settings(BaseSettings):
         super().__init__(**kwargs)
         # Bypasses Pydantic setattr interception to prevent validation errors on private lock field
         object.__setattr__(self, "_cb_lock", threading.Lock())
+        self._validate_production_secrets()
+
+    # Known-insecure placeholder values that must never reach production
+    _WEAK_SECRETS = {
+        "",
+        "supersecretjwtkey",
+        "change-me",
+        "change-me-to-a-random-64-char-hex-string",
+    }
+
+    def _validate_production_secrets(self):
+        """In production, refuse to boot with weak/default auth secrets.
+        Set these via environment variables (e.g. docker run --env-file .env)."""
+        if self.ENV != "production":
+            return
+        if self.JWT_SECRET in self._WEAK_SECRETS or len(self.JWT_SECRET) < 32:
+            raise ValueError(
+                "Refusing to start in production with a weak or default JWT_SECRET. "
+                "Provide a strong 32+ byte secret via the JWT_SECRET environment variable "
+                '(generate one with: python -c "import secrets; print(secrets.token_hex(32))").'
+            )
+        if self.STAFF_PASSCODE in self._WEAK_SECRETS or self.STAFF_PASSCODE == "fifa2026":
+            raise ValueError(
+                "Refusing to start in production with the default STAFF_PASSCODE. "
+                "Set a private STAFF_PASSCODE via environment variable."
+            )
 
     def is_exhausted(self, provider: str) -> bool:
         """Thread-safe check to verify if a provider is rate limited/exhausted."""

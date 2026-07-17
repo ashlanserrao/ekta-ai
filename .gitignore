@@ -45,6 +45,10 @@ stadium_twin.db-shm
 .env.production.local
 *.env
 
+# ...but DO commit the placeholder template (no secrets) so judges can copy it
+!.env.example
+!frontend/.env.example
+
 # Node / Frontend (fallback root exclusions)
 node_modules/
 frontend/node_modules/
