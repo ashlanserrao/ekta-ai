@@ -74,6 +74,94 @@ tool_map = {
     "get_route": get_route
 }
 
+_TOOL_LEAK_RE = re.compile(
+    r'(get_crowd_density|get_gate_status|get_route|<function|function=|'
+    r'\{\s*"(zone|from_location|to_location|accessibility_required)")',
+    re.IGNORECASE,
+)
+
+
+def _looks_like_tool_leak(text: str) -> bool:
+    """True if the model printed a tool call as prose text instead of calling it."""
+    return bool(text) and bool(_TOOL_LEAK_RE.search(text))
+
+
+def _sanitize_leak(text: str) -> str:
+    """Strip leaked tool-call fragments (JSON blobs, function syntax) from a reply."""
+    if not text:
+        return ""
+    text = re.sub(r'\{[^{}]*\}', '', text)
+    text = re.sub(r'<function[^>]*>', '', text)
+    text = re.sub(r'(get_crowd_density|get_gate_status|get_route)\s*\([^)]*\)', '', text)
+    return re.sub(r'\s+', ' ', text).strip()
+
+
+def format_tool_brief(executed_results: list) -> str:
+    """Deterministically render executed tool results into a plain-language brief.
+    Used as the fast-path for staff queries (no second LLM round-trip) and as the
+    universal fallback when an LLM followup produces no text."""
+    parts = []
+    for name, res in executed_results:
+        if name == "get_crowd_density":
+            if "error" in res:
+                parts.append(f"Unable to retrieve crowd density: {res['error']}")
+            else:
+                parts.append(
+                    f"Live crowd density in {res['name']} ({res.get('type', 'zone')}) is {round(res['density']*100)}% "
+                    f"({res['current_crowd']} occupants out of {res['capacity']} capacity)."
+                )
+        elif name == "get_gate_status":
+            gate_lines = [
+                f"- {gate['name']}: {gate['status'].upper()} (Congestion: {gate['congestion_level']})"
+                for gate in res
+            ]
+            parts.append("Here is the current live status of the stadium gates:\n" + "\n".join(gate_lines))
+        elif name == "get_route":
+            if "error" in res:
+                parts.append(f"Routing failed: {res['error']}")
+            else:
+                parts.append(
+                    f"Calculated routing path from {res['from_location']} to {res['to_location']}: "
+                    f"{' -> '.join(res['path_nodes'])}."
+                )
+    return "\n\n".join(parts)
+
+def build_system_prompt(rag_results: list, is_staff: bool) -> str:
+    """Construct the assistant system prompt with RAG context.
+
+    Note: we deliberately do NOT tell the model 'never print tool calls'. That
+    instruction is counterproductive — it makes the model narrate the call as prose
+    instead of emitting a structured tool call. Tool execution is handled server-side
+    and only clean output is streamed, so the warning is unnecessary and harmful.
+    """
+    context_str = "\n".join([f"- {doc['title']}: {doc['content']}" for doc in rag_results])
+
+    prompt = (
+        "You are EktaAI, a GenAI stadium operations assistant for the FIFA World Cup 2026.\n"
+        "Use the following static stadium facts as context to answer general questions when relevant:\n"
+        f"{context_str}\n\n"
+    )
+
+    if is_staff:
+        prompt += (
+            "You are the operational intelligence portal for STADIUM STAFF. Use your live-data tools "
+            "(get_crowd_density, get_gate_status, get_route) whenever the user asks about crowd levels, "
+            "gate status, or routing. Be precise, professional, and alert-oriented."
+        )
+    else:
+        prompt += (
+            "You are the FAN ASSISTANT. Answer helpfully and in the user's own language (match it).\n"
+            "Only call get_route when the user gives BOTH a starting point (e.g., Gate 1, Gate 2, Gate 3, Gate 4) "
+            "and a destination section (e.g., Section 102, Section 105, Section 204, Section 305). If they only ask "
+            "where something is, answer from the facts without routing. When a route is generated, tell them you have "
+            "loaded the route map for them."
+        )
+
+    prompt += (
+        "\nKeep responses concise and actionable — under 3-4 sentences, optimized for on-the-go reading."
+    )
+    return prompt
+
 def query_stadium_assistant(user_message: str, is_staff: bool = False, client=None, history: list = None) -> dict:
     """
     Orchestrates the GenAI response:
@@ -85,37 +173,7 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
     rag = get_rag()
     rag_results = rag.retrieve(user_message, top_k=3)
     
-    context_str = "\n".join([f"- {doc['title']}: {doc['content']}" for doc in rag_results])
-    
-    system_prompt = (
-        "You are EktaAI, a GenAI stadium operations assistant for the FIFA World Cup 2026.\n"
-        "Use the following static stadium facts as context to answer general questions when relevant:\n"
-        f"{context_str}\n\n"
-    )
-    
-    if is_staff:
-        system_prompt += (
-            "You are serving as the operational intelligence portal for STADIUM STAFF.\n"
-            "You have access to tools for live digital twin data: get_crowd_density, get_gate_status, get_route.\n"
-            "Be precise, professional, alert-oriented, and highlight operational suggestions when needed."
-        )
-    else:
-        system_prompt += (
-            "You are serving as the FAN ASSISTANT. Answer user queries helpfully and multilingually (match their language).\n"
-            "Only call get_route if the user explicitly specifies BOTH a starting location (e.g., Gate 1, Gate 2, Gate 3, Gate 4) and a destination section (e.g., Section 102, Section 105, Section 204, Section 305). "
-            "If the user only asks where something is located without providing a starting point, do NOT call get_route; instead, just answer where it is based on the facts.\n"
-            "CRITICAL: Do NOT write or print raw function calls, tool names, or tags (such as 'get_route{...}', 'get_route(...)', or '<function=...>') in your text responses. Any tool execution is handled completely transparently by the system, not via text output.\n"
-            "If a valid route is generated by the tool, tell them in your text reply that you have loaded the route map for them."
-        )
-
-    # Optimization #3: Enforce strict brevity in instructions
-    concise_instruction = (
-        "\nIMPORTANT: Your response must be extremely concise, direct, and actionable. "
-        "Keep your answers brief and under 3-4 sentences, optimized for rapid on-the-go reading. "
-        "CRITICAL: Do NOT write, output, or print any raw tool/function call names, arguments, or XML/HTML tags (such as '<function=...>', 'get_route{...}', or 'get_route(...)') in your text responses. "
-        "All tool execution is handled completely transparently by the system natively; do not print tool call details in your text reply.\n"
-    )
-    system_prompt += concise_instruction
+    system_prompt = build_system_prompt(rag_results, is_staff)
  
     llm_res = None
     reply = ""
@@ -191,8 +249,12 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
             if name == "get_route":
                 route_data = res
 
-    # Generate followup natural-language reply if tools were executed
-    if executed_results and final_provider != "mock":
+    # For STAFF tool queries, skip the second LLM round-trip: staff want precise
+    # numbers, and the deterministic brief is instant (cuts latency ~50%).
+    # Fans keep the LLM followup so replies stay natural and language-matched.
+    if executed_results and is_staff:
+        reply = format_tool_brief(executed_results)
+    elif executed_results and final_provider != "mock":
         tool_results_str = "\n".join([f"Tool {name} output: {json.dumps(res)}" for name, res in executed_results])
         followup_prompt = (
             f"The user's request is: {user_message}\n\n"
@@ -200,7 +262,7 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
             f"{tool_results_str}\n\n"
             f"Generate a professional, natural-language response based on this data."
         )
-        
+
         logger.info(f"Generating followup LLM response using provider: {final_provider}")
         try:
             if client is not None:
@@ -215,30 +277,7 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
 
     # Fallback to direct Python-generated natural-language reply if still empty
     if not reply.strip() and executed_results:
-        fallback_parts = []
-        for name, res in executed_results:
-            if name == "get_crowd_density":
-                if "error" in res:
-                    fallback_parts.append(f"Unable to retrieve crowd density: {res['error']}")
-                else:
-                    fallback_parts.append(
-                        f"Live crowd density in {res['name']} ({res['type']}) is {round(res['density']*100)}% "
-                        f"({res['current_crowd']} occupants out of {res['capacity']} capacity)."
-                    )
-            elif name == "get_gate_status":
-                gate_lines = []
-                for gate in res:
-                    gate_lines.append(f"- {gate['name']}: {gate['status'].upper()} (Congestion: {gate['congestion_level']})")
-                fallback_parts.append("Here is the current live status of the stadium gates:\n" + "\n".join(gate_lines))
-            elif name == "get_route":
-                if "error" in res:
-                    fallback_parts.append(f"Routing failed: {res['error']}")
-                else:
-                    fallback_parts.append(
-                        f"Calculated routing path from {res['from_location']} to {res['to_location']}: "
-                        f"{' -> '.join(res['path_nodes'])}."
-                    )
-        reply = "\n\n".join(fallback_parts)
+        reply = format_tool_brief(executed_results)
 
     last_tool = tool_calls[0].name if tool_calls else None
 
@@ -257,37 +296,7 @@ def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=N
     rag = get_rag()
     rag_results = rag.retrieve(user_message, top_k=3)
     
-    context_str = "\n".join([f"- {doc['title']}: {doc['content']}" for doc in rag_results])
-    
-    system_prompt = (
-        "You are EktaAI, a GenAI stadium operations assistant for the FIFA World Cup 2026.\n"
-        "Use the following static stadium facts as context to answer general questions when relevant:\n"
-        f"{context_str}\n\n"
-    )
-    
-    if is_staff:
-        system_prompt += (
-            "You are serving as the operational intelligence portal for STADIUM STAFF.\n"
-            "You have access to tools for live digital twin data: get_crowd_density, get_gate_status, get_route.\n"
-            "Be precise, professional, alert-oriented, and highlight operational suggestions when needed."
-        )
-    else:
-        system_prompt += (
-            "You are serving as the FAN ASSISTANT. Answer user queries helpfully and multilingually (match their language).\n"
-            "Only call get_route if the user explicitly specifies BOTH a starting location (e.g., Gate 1, Gate 2, Gate 3, Gate 4) and a destination section (e.g., Section 102, Section 105, Section 204, Section 305). "
-            "If the user only asks where something is located without providing a starting point, do NOT call get_route; instead, just answer where it is based on the facts.\n"
-            "CRITICAL: Do NOT write or print raw function calls, tool names, or tags (such as 'get_route{...}', 'get_route(...)', or '<function=...>') in your text responses. Any tool execution is handled completely transparently by the system, not via text output.\n"
-            "If a valid route is generated by the tool, tell them in your text reply that you have loaded the route map for them."
-        )
-
-    # Optimization #3: Enforce strict brevity in instructions
-    concise_instruction = (
-        "\nIMPORTANT: Your response must be extremely concise, direct, and actionable. "
-        "Keep your answers brief and under 3-4 sentences, optimized for rapid on-the-go reading. "
-        "CRITICAL: Do NOT write, output, or print any raw tool/function call names, arguments, or XML/HTML tags (such as '<function=...>', 'get_route{...}', or 'get_route(...)') in your text responses. "
-        "All tool execution is handled completely transparently by the system natively; do not print tool call details in your text reply.\n"
-    )
-    system_prompt += concise_instruction
+    system_prompt = build_system_prompt(rag_results, is_staff)
 
     # Determine provider and client
     final_provider = "mock"
@@ -305,85 +314,80 @@ def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=N
         final_provider = "mock"
 
     tools_list = [get_crowd_density, get_gate_status, get_route]
-    
-    tool_calls_map = {}
-    text_content = []
-    
-    # Try streaming from primary model
+
+    # First pass is NON-streaming: models emit reliable *structured* tool calls this
+    # way. Streamed tool-calls are flaky (llama can leak the raw call as prose text),
+    # so we decide tools here, then stream only the final answer below.
+    reply = ""
+    tool_calls = []
     try:
-        stream = client_instance.generate_stream(system_prompt, user_message, tools_list, history=history)
-        for delta in stream:
-            # Check for tool calls delta
-            if "tool_calls" in delta:
-                for tc in delta["tool_calls"]:
-                    idx = tc.get("index", 0)
-                    if idx not in tool_calls_map:
-                        tool_calls_map[idx] = {"name": "", "args_str": ""}
-                    
-                    func = tc.get("function", {})
-                    if func.get("name"):
-                        tool_calls_map[idx]["name"] += func["name"]
-                    if func.get("arguments"):
-                        tool_calls_map[idx]["args_str"] += func["arguments"]
-            
-            # Check for content delta
-            if "content" in delta and delta["content"]:
-                text_content.append(delta["content"])
-                yield json.dumps({
-                    "token": delta["content"],
-                    "provider": final_provider,
-                    "tool_called": None,
-                    "route": None
-                })
+        first = client_instance.generate(system_prompt, user_message, tools_list, history=history)
+        reply = first.reply or ""
+        tool_calls = first.tool_calls or []
     except Exception as e:
-        logger.error(f"{final_provider} stream failed: {e}. Falling back to Mock.")
+        logger.error(f"{final_provider} generate failed: {e}. Falling back to Mock.")
         if final_provider == "groq":
             settings.set_exhausted("groq", True)
-            final_provider = "mock"
-            client_instance = MockLLMClient()
-            stream = client_instance.generate_stream(system_prompt, user_message, tools_list, history=history)
-            for delta in stream:
-                if "content" in delta and delta["content"]:
-                    yield json.dumps({
-                        "token": delta["content"],
-                        "provider": final_provider,
-                        "tool_called": None,
-                        "route": None
-                    })
-            return
-
-    # Parse any accumulated tool calls
-    tool_calls = []
-    for idx, tc_data in tool_calls_map.items():
-        name = tc_data["name"]
-        args_str = tc_data["args_str"]
+        final_provider = "mock"
+        client_instance = MockLLMClient()
         try:
-            args = json.loads(args_str) if args_str else {}
-        except Exception:
-            args = {}
-        tool_calls.append(ToolCall(name=name, args=args))
+            first = client_instance.generate(system_prompt, user_message, tools_list, history=history)
+            reply = first.reply or ""
+            tool_calls = first.tool_calls or []
+        except Exception as e2:
+            logger.error(f"Mock generate failed: {e2}")
+            reply = "I'm sorry, I'm having trouble processing that right now. Please try again."
 
-    # If tool calls were made:
-    if tool_calls:
-        last_tool = tool_calls[0].name
-        
-        # Execute tool calls
-        executed_results = []
-        for tool in tool_calls:
-            if tool.name in tool_map:
-                try:
-                    result_data = tool_map[tool.name](**tool.args)
-                    executed_results.append((tool.name, result_data))
-                except Exception as e:
-                    executed_results.append((tool.name, {"error": str(e)}))
+    # Occasionally a model prints a tool call as prose instead of emitting a
+    # structured call. Retry once (usually resolves it); if it still leaks, sanitize.
+    if not tool_calls and _looks_like_tool_leak(reply):
+        logger.info("Detected leaked tool-call text; retrying decision pass once.")
+        try:
+            retry = client_instance.generate(system_prompt, user_message, tools_list, history=history)
+            if retry.tool_calls:
+                tool_calls = retry.tool_calls
+                reply = retry.reply or ""
+            else:
+                reply = _sanitize_leak(retry.reply or reply)
+        except Exception as e:
+            logger.error(f"Tool-leak retry failed: {e}")
+            reply = _sanitize_leak(reply)
 
-        # Check for route data to send
-        route_data = None
-        for name, res in executed_results:
-            if name == "get_route":
-                route_data = res
+    # No tool calls: stream the (already generated) direct answer word by word.
+    if not tool_calls:
+        if not reply.strip():
+            reply = "I'm here to help with stadium navigation, facilities, and accessibility. Could you rephrase your question?"
+        for word in reply.split(" "):
+            yield json.dumps({
+                "token": word + " ",
+                "provider": final_provider,
+                "tool_called": None,
+                "route": None
+            })
+        return
 
-        # Run followup query (streaming)
+    # Tool calls were made: execute them, then stream the answer.
+    last_tool = tool_calls[0].name
+    executed_results = []
+    for tool in tool_calls:
+        if tool.name in tool_map:
+            try:
+                result_data = tool_map[tool.name](**tool.args)
+                executed_results.append((tool.name, result_data))
+            except Exception as e:
+                executed_results.append((tool.name, {"error": str(e)}))
+
+    route_data = None
+    for name, res in executed_results:
+        if name == "get_route":
+            route_data = res
+
+    followup_reply_sent = False
+
+    # STAFF fast-path: stream the deterministic brief and skip the second LLM
+    # round-trip (~50% lower latency). Fans get an LLM followup for natural,
+    # language-matched prose.
+    if not is_staff:
         tool_results_str = "\n".join([f"Tool {name} output: {json.dumps(res)}" for name, res in executed_results])
         followup_prompt = (
             f"The user's request is: {user_message}\n\n"
@@ -391,8 +395,6 @@ def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=N
             f"{tool_results_str}\n\n"
             f"Generate a professional, natural-language response based on this data."
         )
-
-        followup_reply_sent = False
         try:
             followup_stream = client_instance.generate_stream(system_prompt, followup_prompt, tools=[], history=history)
             for delta in followup_stream:
@@ -406,38 +408,14 @@ def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=N
                     })
         except Exception as e:
             logger.error(f"Followup stream failed: {e}")
-            
-        # Fallback to direct Python-generated natural-language reply if still empty
-        if not followup_reply_sent:
-            fallback_parts = []
-            for name, res in executed_results:
-                if name == "get_crowd_density":
-                    if "error" in res:
-                        fallback_parts.append(f"Unable to retrieve crowd density: {res['error']}")
-                    else:
-                        fallback_parts.append(
-                            f"Live crowd density in {res['name']} ({res['type']}) is {round(res['density']*100)}% "
-                            f"({res['current_crowd']} occupants out of {res['capacity']} capacity)."
-                        )
-                elif name == "get_gate_status":
-                    gate_lines = []
-                    for gate in res:
-                        gate_lines.append(f"- {gate['name']}: {gate['status'].upper()} (Congestion: {gate['congestion_level']})")
-                    fallback_parts.append("Here is the current live status of the stadium gates:\n" + "\n".join(gate_lines))
-                elif name == "get_route":
-                    if "error" in res:
-                        fallback_parts.append(f"Routing failed: {res['error']}")
-                    else:
-                        fallback_parts.append(
-                            f"Calculated routing path from {res['from_location']} to {res['to_location']}: "
-                            f"{' -> '.join(res['path_nodes'])}."
-                        )
-            reply = "\n\n".join(fallback_parts)
-            # Yield full reply as single tokens or chunks
-            for word in reply.split(" "):
-                yield json.dumps({
-                    "token": word + " ",
-                    "provider": final_provider,
-                    "tool_called": last_tool,
-                    "route": route_data
-                })
+
+    # Staff, or a fan followup that produced nothing: stream the deterministic brief.
+    if not followup_reply_sent:
+        brief = format_tool_brief(executed_results)
+        for word in brief.split(" "):
+            yield json.dumps({
+                "token": word + " ",
+                "provider": final_provider,
+                "tool_called": last_tool,
+                "route": route_data
+            })

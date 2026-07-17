@@ -96,12 +96,23 @@ export default function FanAssistant({ gates, zones }) {
               if (line.startsWith("data: ")) {
                 try {
                   const data = JSON.parse(line.slice(6));
+                  if (data.reset) {
+                    // Discard any leaked first-pass tool-call text before the real answer.
+                    botReply = "";
+                    setFanMessages(prev => {
+                      const updated = [...prev];
+                      if (updated.length > 0 && updated[updated.length - 1].sender === "bot") {
+                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: "" };
+                      }
+                      return updated;
+                    });
+                  }
                   if (data.token) {
                     botReply += data.token;
                     setFanMessages(prev => {
                       const updated = [...prev];
                       if (updated.length > 0 && updated[updated.length - 1].sender === "bot") {
-                        updated[updated.length - 1].text = botReply;
+                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: botReply };
                       }
                       return updated;
                     });
@@ -112,7 +123,7 @@ export default function FanAssistant({ gates, zones }) {
                   if (data.route) {
                     setActiveRoute(data.route);
                   }
-                } catch (e) {
+                } catch {
                   // Partial chunk parse error - ignore safely
                 }
               }

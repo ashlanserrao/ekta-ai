@@ -374,10 +374,14 @@ class GroqLLMClient:
             for tc in raw_tool_calls:
                 func = tc.get("function", {})
                 name = func.get("name")
-                args_str = func.get("arguments", "{}")
+                args_str = func.get("arguments") or "{}"
                 try:
                     args = json.loads(args_str)
                 except Exception:
+                    args = {}
+                # Models may return "null" or a non-object for no-arg tools; coerce to {}
+                # so tool_fn(**args) never receives None.
+                if not isinstance(args, dict):
                     args = {}
                 tool_calls.append(ToolCall(name=name, args=args))
                 

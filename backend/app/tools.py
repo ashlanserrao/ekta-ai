@@ -15,7 +15,7 @@ def get_crowd_density(zone: str) -> dict:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, name, capacity, current_crowd, density FROM zones WHERE id = ? OR name LIKE ?",
+            "SELECT id, name, type, capacity, current_crowd, density FROM zones WHERE id = ? OR name LIKE ?",
             (zone, f"%{zone}%")
         )
         row = cursor.fetchone()

@@ -103,9 +103,11 @@ def test_chat_endpoints():
         assert staff_res.status_code == 200
         staff_data = staff_res.json()
         assert "reply" in staff_data
-        assert "[STAFF OPERATIONAL BRIEF]" in staff_data["reply"]
-        assert "Zone-C" in staff_data["reply"]
-        assert "90%" in staff_data["reply"]
+        # Staff fast-path returns a deterministic operational brief (no 2nd LLM call),
+        # rendered from live twin data — assert structure, not exact live values.
+        assert "South Concourse C" in staff_data["reply"]
+        assert "%" in staff_data["reply"]
+        assert "capacity" in staff_data["reply"].lower()
         assert "{" not in staff_data["reply"]
         
         # Test Staff Chat - Gate Status Query

@@ -64,13 +64,19 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 6. **Semantic RAG Store**:
    - Indexes static stadium details (FAQs, amenities, transit links) using `sentence-transformers` (`all-MiniLM-L6-v2`) and `FAISS` to inject context for general queries.
 
+7. **Operations Copilot (Proactive Decision Support)**:
+   - Unlike the reactive chat assistant, the Copilot continuously reads the digital twin, fits a short-horizon trend to each zone's recent density telemetry, and **forecasts congestion ~5 minutes ahead** (projected density, ETA-to-critical, and the gate feeding each zone).
+   - A GenAI pass then synthesizes an executive **situation summary** and a **prioritized list of specific recommended actions** (e.g. "halt inflow at Gate 3, open overflow routing"), with a fully deterministic fallback when offline. Exposed at `GET /api/v1/staff/copilot` and surfaced as the centerpiece panel of the Staff Dashboard.
+   - The twin's simulator uses a **momentum model** (slowly-varying ingress/egress pressure) rather than white noise, so trends are sustained and genuinely forecastable.
+
 ---
 
 ## Non-Functional Qualities
 
 - **Security**: Tightened CORS configurations restricting origins, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. The Staff Portal is secured with passcode-gated JWT authentication (4 hours expiration, token stored in sessionStorage) and a higher burst rate limit of 30 requests per 10 seconds per IP.
 - **Accessibility**: Built with semantic HTML (headers, buttons, main, labels), high-contrast accessibility mode, text size optimization, keyboard navigation support, and voice recognition/synthesis.
-- **Testing**: Includes full unit tests for API, routing graph, and simulator routines, plus an automated eval script verifying 15 bilingual/tool-calling prompts.
+- **Testing**: Includes full unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, and the Operations Copilot (forecast + endpoint), plus an automated eval script verifying 15 bilingual/tool-calling prompts.
+- **Latency**: Staff operational queries return in a single LLM round-trip — the structured tool result is rendered deterministically instead of paying for a second "phrasing" call — while fan replies keep an LLM pass for natural, language-matched prose.
 
 ---
 
