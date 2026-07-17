@@ -25,7 +25,7 @@ describe("FanApp", () => {
     expect(screen.getByRole("button", { name: /Player Stats/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /My Ticket/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Match Schedule/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Live Stadium Map/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Stadium Live Map/i })).toBeInTheDocument();
   });
 
   it("shows the collapsed chat launcher and opens the chat on click", async () => {
