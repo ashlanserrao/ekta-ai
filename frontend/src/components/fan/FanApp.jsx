@@ -9,7 +9,7 @@ import ChatWidget from "./ChatWidget";
 
 const NAV = [
   { key: "map", icon: "🗺️", label: "Live Stadium Map" },
-  { key: "stats", icon: "📊", label: "Player Stats" },
+  { key: "stats", icon: "📊", label: "Stats" },
   { key: "ticket", icon: "🎫", label: "My Ticket" },
   { key: "schedule", icon: "📅", label: "Match Schedule" },
   { key: "profile", icon: "👤", label: "Profile" },

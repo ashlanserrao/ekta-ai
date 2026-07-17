@@ -22,7 +22,7 @@ describe("FanApp", () => {
   it("renders the sidebar nav and the map view by default", () => {
     renderApp();
     expect(screen.getByRole("button", { name: /Live Stadium Map/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Player Stats/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Stats/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /My Ticket/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Match Schedule/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Stadium Live Map/i })).toBeInTheDocument();
