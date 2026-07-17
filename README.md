@@ -75,7 +75,7 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 
 - **Security**: Tightened CORS configurations restricting origins, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. The Staff Portal is secured with passcode-gated JWT authentication (4 hours expiration, token stored in sessionStorage) and a higher burst rate limit of 30 requests per 10 seconds per IP.
 - **Accessibility**: Built with semantic HTML (headers, buttons, main, labels), high-contrast accessibility mode, text size optimization, keyboard navigation support, and voice recognition/synthesis.
-- **Testing**: Includes full unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, and the Operations Copilot (forecast + endpoint), plus an automated eval script verifying 15 bilingual/tool-calling prompts.
+- **Testing**: Backend unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, multilingual (French) routing, and the Operations Copilot (forecast + endpoint); frontend component tests (Vitest + React Testing Library) for the map, fan chat/prompt-chips, and staff Copilot panel; plus an automated eval script verifying 15 bilingual/tool-calling prompts. CI runs the full suite on every push.
 - **Latency**: Staff operational queries return in a single LLM round-trip — the structured tool result is rendered deterministically instead of paying for a second "phrasing" call — while fan replies keep an LLM pass for natural, language-matched prose.
 
 ---
@@ -113,9 +113,13 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 2. Access the application in your browser at `http://localhost:5173`.
 
 ### 3. Run Tests
-- Run unit tests:
+- Run backend unit tests:
   ```bash
   pytest tests/
+  ```
+- Run frontend component tests:
+  ```bash
+  cd frontend && npm test
   ```
 - Run LLM evaluation prompts:
   ```bash

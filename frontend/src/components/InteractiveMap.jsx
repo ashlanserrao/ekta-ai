@@ -214,7 +214,8 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
           
           {/* Render general gates if not routed */}
           {!activeRoute && gates.map((gate) => {
-            const coord = NODE_COORDINATES[gate.name];
+            // Gate names arrive as "Gate 1 (North)"; coord keys are "Gate 1".
+            const coord = NODE_COORDINATES[gate.name] || NODE_COORDINATES[gate.name.split(" (")[0]];
             if (!coord) return null;
             const color = getCongestionColor(gate.congestion_level);
             return (
