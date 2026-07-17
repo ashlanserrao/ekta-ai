@@ -1,33 +1,37 @@
-import React from "react";
-import { SCHEDULE } from "../../data/worldcup";
+import React, { useState } from "react";
+import MatchesTab from "./schedule/MatchesTab";
+import BracketTab from "./schedule/BracketTab";
+
+const TABS = [
+  { key: "matches", label: "Matches" },
+  { key: "bracket", label: "Bracket" },
+];
 
 export default function ScheduleView() {
+  const [activeTab, setActiveTab] = useState("matches");
+
   return (
     <div className="fan-view">
       <div className="view-heading">
         <h1>Match Schedule</h1>
-        <p>Upcoming FIFA World Cup 2026 fixtures across host venues.</p>
+        <p>FIFA World Cup 2026 — results, fixtures, and the road to the final.</p>
       </div>
 
-      <div className="schedule-list">
-        {SCHEDULE.map((m, i) => (
-          <div key={i} className="glass-panel schedule-row">
-            <div className="schedule-date">
-              <span className="schedule-day">{m.date}</span>
-              <span className="schedule-time">{m.time}</span>
-            </div>
-            <div className="schedule-match">
-              <span className="schedule-team">{m.homeFlag} {m.home}</span>
-              <span className="schedule-vs">vs</span>
-              <span className="schedule-team">{m.away} {m.awayFlag}</span>
-            </div>
-            <div className="schedule-meta">
-              <span className={`schedule-stage ${m.stage === "Final" ? "final" : ""}`}>{m.stage}</span>
-              <span className="schedule-venue">📍 {m.venue}</span>
-            </div>
-          </div>
+      <div className="stats-tabs" role="tablist" aria-label="Schedule tabs">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={activeTab === t.key}
+            className={`stats-tab ${activeTab === t.key ? "active" : ""}`}
+            onClick={() => setActiveTab(t.key)}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
+
+      {activeTab === "matches" ? <MatchesTab /> : <BracketTab />}
     </div>
   );
 }

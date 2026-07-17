@@ -1,0 +1,687 @@
+[
+  {
+    "id": "m1",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "12:00",
+    "venue": "Estadio Azteca, Mexico City",
+    "teamA": {
+      "id": "arg",
+      "name": "Argentina",
+      "flag": "🇦🇷"
+    },
+    "teamB": {
+      "id": "xt_23",
+      "name": "Saudi Arabia",
+      "flag": "🇸🇦"
+    },
+    "scoreA": 0,
+    "scoreB": 3,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_23"
+  },
+  {
+    "id": "m2",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "13:00",
+    "venue": "SoFi Stadium, LA",
+    "teamA": {
+      "id": "xt_8",
+      "name": "Japan",
+      "flag": "🇯🇵"
+    },
+    "teamB": {
+      "id": "xt_9",
+      "name": "Morocco",
+      "flag": "🇲🇦"
+    },
+    "scoreA": 0,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_9"
+  },
+  {
+    "id": "m3",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "14:00",
+    "venue": "Arrowhead Stadium, KC",
+    "teamA": {
+      "id": "xt_2",
+      "name": "Netherlands",
+      "flag": "🇳🇱"
+    },
+    "teamB": {
+      "id": "xt_17",
+      "name": "Australia",
+      "flag": "🇦🇺"
+    },
+    "scoreA": 1,
+    "scoreB": 3,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_17"
+  },
+  {
+    "id": "m4",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "15:00",
+    "venue": "Mercedes-Benz Stadium, Atlanta",
+    "teamA": {
+      "id": "xt_3",
+      "name": "Italy",
+      "flag": "🇮🇹"
+    },
+    "teamB": {
+      "id": "xt_16",
+      "name": "Nigeria",
+      "flag": "🇳🇬"
+    },
+    "scoreA": 2,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_3"
+  },
+  {
+    "id": "m5",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "16:00",
+    "venue": "SoFi Stadium, LA",
+    "teamA": {
+      "id": "esp",
+      "name": "Spain",
+      "flag": "🇪🇸"
+    },
+    "teamB": {
+      "id": "xt_20",
+      "name": "Costa Rica",
+      "flag": "🇨🇷"
+    },
+    "scoreA": 3,
+    "scoreB": 3,
+    "penalties": {
+      "a": 5,
+      "b": 1
+    },
+    "status": "completed",
+    "winnerId": "esp"
+  },
+  {
+    "id": "m6",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "17:00",
+    "venue": "MetLife Stadium, NJ",
+    "teamA": {
+      "id": "xt_6",
+      "name": "Croatia",
+      "flag": "🇭🇷"
+    },
+    "teamB": {
+      "id": "xt_12",
+      "name": "Senegal",
+      "flag": "🇸🇳"
+    },
+    "scoreA": 3,
+    "scoreB": 3,
+    "penalties": {
+      "a": 4,
+      "b": 5
+    },
+    "status": "completed",
+    "winnerId": "xt_12"
+  },
+  {
+    "id": "m7",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "18:00",
+    "venue": "AT&T Stadium, Dallas",
+    "teamA": {
+      "id": "eng",
+      "name": "England",
+      "flag": "🏴"
+    },
+    "teamB": {
+      "id": "xt_19",
+      "name": "Tunisia",
+      "flag": "🇹🇳"
+    },
+    "scoreA": 1,
+    "scoreB": 1,
+    "penalties": {
+      "a": 4,
+      "b": 3
+    },
+    "status": "completed",
+    "winnerId": "eng"
+  },
+  {
+    "id": "m8",
+    "round": "R32",
+    "date": "2026-07-04",
+    "time": "19:00",
+    "venue": "Arrowhead Stadium, KC",
+    "teamA": {
+      "id": "xt_5",
+      "name": "Uruguay",
+      "flag": "🇺🇾"
+    },
+    "teamB": {
+      "id": "xt_13",
+      "name": "Ecuador",
+      "flag": "🇪🇨"
+    },
+    "scoreA": 3,
+    "scoreB": 0,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_5"
+  },
+  {
+    "id": "m9",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "12:00",
+    "venue": "BC Place, Vancouver",
+    "teamA": {
+      "id": "fra",
+      "name": "France",
+      "flag": "🇫🇷"
+    },
+    "teamB": {
+      "id": "xt_22",
+      "name": "Qatar",
+      "flag": "🇶🇦"
+    },
+    "scoreA": 1,
+    "scoreB": 0,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "fra"
+  },
+  {
+    "id": "m10",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "13:00",
+    "venue": "Arrowhead Stadium, KC",
+    "teamA": {
+      "id": "xt_7",
+      "name": "Colombia",
+      "flag": "🇨🇴"
+    },
+    "teamB": {
+      "id": "xt_10",
+      "name": "Switzerland",
+      "flag": "🇨🇭"
+    },
+    "scoreA": 0,
+    "scoreB": 3,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_10"
+  },
+  {
+    "id": "m11",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "14:00",
+    "venue": "Arrowhead Stadium, KC",
+    "teamA": {
+      "id": "xt_1",
+      "name": "Portugal",
+      "flag": "🇵🇹"
+    },
+    "teamB": {
+      "id": "xt_18",
+      "name": "Ghana",
+      "flag": "🇬🇭"
+    },
+    "scoreA": 0,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_18"
+  },
+  {
+    "id": "m12",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "15:00",
+    "venue": "Estadio Azteca, Mexico City",
+    "teamA": {
+      "id": "xt_4",
+      "name": "Belgium",
+      "flag": "🇧🇪"
+    },
+    "teamB": {
+      "id": "xt_15",
+      "name": "Poland",
+      "flag": "🇵🇱"
+    },
+    "scoreA": 2,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_4"
+  },
+  {
+    "id": "m13",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "16:00",
+    "venue": "MetLife Stadium, NJ",
+    "teamA": {
+      "id": "bra",
+      "name": "Brazil",
+      "flag": "🇧🇷"
+    },
+    "teamB": {
+      "id": "xt_21",
+      "name": "Panama",
+      "flag": "🇵🇦"
+    },
+    "scoreA": 3,
+    "scoreB": 0,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "bra"
+  },
+  {
+    "id": "m14",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "17:00",
+    "venue": "BC Place, Vancouver",
+    "teamA": {
+      "id": "mex",
+      "name": "Mexico",
+      "flag": "🇲🇽"
+    },
+    "teamB": {
+      "id": "xt_11",
+      "name": "Denmark",
+      "flag": "🇩🇰"
+    },
+    "scoreA": 0,
+    "scoreB": 2,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_11"
+  },
+  {
+    "id": "m15",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "18:00",
+    "venue": "Mercedes-Benz Stadium, Atlanta",
+    "teamA": {
+      "id": "xt_0",
+      "name": "Germany",
+      "flag": "🇩🇪"
+    },
+    "teamB": {
+      "id": "can",
+      "name": "Canada",
+      "flag": "🇨🇦"
+    },
+    "scoreA": 3,
+    "scoreB": 3,
+    "penalties": {
+      "a": 5,
+      "b": 2
+    },
+    "status": "completed",
+    "winnerId": "xt_0"
+  },
+  {
+    "id": "m16",
+    "round": "R32",
+    "date": "2026-07-05",
+    "time": "19:00",
+    "venue": "Mercedes-Benz Stadium, Atlanta",
+    "teamA": {
+      "id": "usa",
+      "name": "USA",
+      "flag": "🇺🇸"
+    },
+    "teamB": {
+      "id": "xt_14",
+      "name": "South Korea",
+      "flag": "🇰🇷"
+    },
+    "scoreA": 3,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "usa"
+  },
+  {
+    "id": "m17",
+    "round": "R16",
+    "date": "2026-07-09",
+    "time": "13:00",
+    "venue": "SoFi Stadium, LA",
+    "teamA": {
+      "id": "xt_23",
+      "name": "Saudi Arabia",
+      "flag": "🇸🇦"
+    },
+    "teamB": {
+      "id": "xt_9",
+      "name": "Morocco",
+      "flag": "🇲🇦"
+    },
+    "scoreA": 2,
+    "scoreB": 0,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_23"
+  },
+  {
+    "id": "m18",
+    "round": "R16",
+    "date": "2026-07-09",
+    "time": "15:00",
+    "venue": "SoFi Stadium, LA",
+    "teamA": {
+      "id": "xt_17",
+      "name": "Australia",
+      "flag": "🇦🇺"
+    },
+    "teamB": {
+      "id": "xt_3",
+      "name": "Italy",
+      "flag": "🇮🇹"
+    },
+    "scoreA": 0,
+    "scoreB": 2,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_3"
+  },
+  {
+    "id": "m19",
+    "round": "R16",
+    "date": "2026-07-09",
+    "time": "17:00",
+    "venue": "Estadio Azteca, Mexico City",
+    "teamA": {
+      "id": "esp",
+      "name": "Spain",
+      "flag": "🇪🇸"
+    },
+    "teamB": {
+      "id": "xt_12",
+      "name": "Senegal",
+      "flag": "🇸🇳"
+    },
+    "scoreA": 3,
+    "scoreB": 0,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "esp"
+  },
+  {
+    "id": "m20",
+    "round": "R16",
+    "date": "2026-07-09",
+    "time": "19:00",
+    "venue": "Mercedes-Benz Stadium, Atlanta",
+    "teamA": {
+      "id": "eng",
+      "name": "England",
+      "flag": "🏴"
+    },
+    "teamB": {
+      "id": "xt_5",
+      "name": "Uruguay",
+      "flag": "🇺🇾"
+    },
+    "scoreA": 0,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_5"
+  },
+  {
+    "id": "m21",
+    "round": "R16",
+    "date": "2026-07-10",
+    "time": "13:00",
+    "venue": "Estadio Azteca, Mexico City",
+    "teamA": {
+      "id": "fra",
+      "name": "France",
+      "flag": "🇫🇷"
+    },
+    "teamB": {
+      "id": "xt_10",
+      "name": "Switzerland",
+      "flag": "🇨🇭"
+    },
+    "scoreA": 0,
+    "scoreB": 3,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_10"
+  },
+  {
+    "id": "m22",
+    "round": "R16",
+    "date": "2026-07-10",
+    "time": "15:00",
+    "venue": "MetLife Stadium, NJ",
+    "teamA": {
+      "id": "xt_18",
+      "name": "Ghana",
+      "flag": "🇬🇭"
+    },
+    "teamB": {
+      "id": "xt_4",
+      "name": "Belgium",
+      "flag": "🇧🇪"
+    },
+    "scoreA": 2,
+    "scoreB": 3,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_4"
+  },
+  {
+    "id": "m23",
+    "round": "R16",
+    "date": "2026-07-10",
+    "time": "17:00",
+    "venue": "Mercedes-Benz Stadium, Atlanta",
+    "teamA": {
+      "id": "bra",
+      "name": "Brazil",
+      "flag": "🇧🇷"
+    },
+    "teamB": {
+      "id": "xt_11",
+      "name": "Denmark",
+      "flag": "🇩🇰"
+    },
+    "scoreA": 0,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_11"
+  },
+  {
+    "id": "m24",
+    "round": "R16",
+    "date": "2026-07-10",
+    "time": "19:00",
+    "venue": "BC Place, Vancouver",
+    "teamA": {
+      "id": "xt_0",
+      "name": "Germany",
+      "flag": "🇩🇪"
+    },
+    "teamB": {
+      "id": "usa",
+      "name": "USA",
+      "flag": "🇺🇸"
+    },
+    "scoreA": 2,
+    "scoreB": 2,
+    "penalties": {
+      "a": 5,
+      "b": 3
+    },
+    "status": "completed",
+    "winnerId": "xt_0"
+  },
+  {
+    "id": "m25",
+    "round": "QF",
+    "date": "2026-07-15",
+    "time": "18:00",
+    "venue": "BC Place, Vancouver",
+    "teamA": {
+      "id": "xt_23",
+      "name": "Saudi Arabia",
+      "flag": "🇸🇦"
+    },
+    "teamB": {
+      "id": "xt_3",
+      "name": "Italy",
+      "flag": "🇮🇹"
+    },
+    "scoreA": 0,
+    "scoreB": 4,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_3"
+  },
+  {
+    "id": "m26",
+    "round": "QF",
+    "date": "2026-07-15",
+    "time": "18:00",
+    "venue": "Lincoln Financial Field, Philadelphia",
+    "teamA": {
+      "id": "esp",
+      "name": "Spain",
+      "flag": "🇪🇸"
+    },
+    "teamB": {
+      "id": "xt_5",
+      "name": "Uruguay",
+      "flag": "🇺🇾"
+    },
+    "scoreA": 3,
+    "scoreB": 4,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_5"
+  },
+  {
+    "id": "m27",
+    "round": "QF",
+    "date": "2026-07-16",
+    "time": "18:00",
+    "venue": "Mercedes-Benz Stadium, Atlanta",
+    "teamA": {
+      "id": "xt_10",
+      "name": "Switzerland",
+      "flag": "🇨🇭"
+    },
+    "teamB": {
+      "id": "xt_4",
+      "name": "Belgium",
+      "flag": "🇧🇪"
+    },
+    "scoreA": 1,
+    "scoreB": 2,
+    "penalties": null,
+    "status": "completed",
+    "winnerId": "xt_4"
+  },
+  {
+    "id": "m28",
+    "round": "QF",
+    "date": "2026-07-17",
+    "time": "15:00",
+    "venue": "AT&T Stadium, Dallas",
+    "teamA": {
+      "id": "xt_11",
+      "name": "Denmark",
+      "flag": "🇩🇰"
+    },
+    "teamB": {
+      "id": "xt_0",
+      "name": "Germany",
+      "flag": "🇩🇪"
+    },
+    "scoreA": 0,
+    "scoreB": 1,
+    "penalties": null,
+    "status": "live",
+    "winnerId": null
+  },
+  {
+    "id": "m29",
+    "round": "SF",
+    "date": "2026-07-21",
+    "time": "18:00",
+    "venue": "BC Place, Vancouver",
+    "teamA": {
+      "id": "xt_3",
+      "name": "Italy",
+      "flag": "🇮🇹"
+    },
+    "teamB": {
+      "id": "xt_5",
+      "name": "Uruguay",
+      "flag": "🇺🇾"
+    },
+    "scoreA": null,
+    "scoreB": null,
+    "penalties": null,
+    "status": "upcoming",
+    "winnerId": null
+  },
+  {
+    "id": "m30",
+    "round": "SF",
+    "date": "2026-07-22",
+    "time": "18:00",
+    "venue": "BC Place, Vancouver",
+    "teamA": {
+      "id": "xt_4",
+      "name": "Belgium",
+      "flag": "🇧🇪"
+    },
+    "teamB": null,
+    "scoreA": null,
+    "scoreB": null,
+    "penalties": null,
+    "status": "tbd",
+    "winnerId": null
+  },
+  {
+    "id": "m31",
+    "round": "F",
+    "date": "2026-07-26",
+    "time": "15:00",
+    "venue": "Estadio Azteca, Mexico City",
+    "teamA": null,
+    "teamB": null,
+    "scoreA": null,
+    "scoreB": null,
+    "penalties": null,
+    "status": "tbd",
+    "winnerId": null
+  }
+]
