@@ -75,14 +75,15 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "An unexpected error occurred. Please try again later."}
     )
 
-# Security & CORS configuration
+# Security & CORS configuration. Methods and headers are enumerated explicitly:
+# the API only ever serves GET/POST with JSON bodies and bearer tokens.
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Include routers

@@ -26,7 +26,8 @@ def test_seeded_transit_lines_present():
     assert {"Line-M1", "Line-M2", "Shuttle-N", "BRT-3"} <= ids
     for line in lines:
         assert 0.0 <= line["current_load"] <= 1.0
-        assert 0.0 < line["minutes_to_next"] <= line["headway_minutes"]
+        # 0.0 is valid: it means a departure is happening right now
+        assert 0.0 <= line["minutes_to_next"] <= line["headway_minutes"]
         assert line["crowding"] in ("low", "medium", "high")
         assert line["co2_saved_kg_per_trip"] > 0
 
