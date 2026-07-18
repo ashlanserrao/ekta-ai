@@ -69,7 +69,7 @@ export default function DataHistoryView({ token, onLogout }) {
         ) : summary.events.length === 0 ? (
           <div className="stats-empty">No interaction events recorded yet.</div>
         ) : (
-          <div className="table-scroll history-table-scroll">
+          <div className="table-scroll capped-table-scroll">
             <table className="stats-table">
               <thead>
                 <tr>

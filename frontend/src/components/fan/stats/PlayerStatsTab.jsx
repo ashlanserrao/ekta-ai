@@ -100,7 +100,7 @@ export default function PlayerStatsTab() {
         {rows.length === 0 ? (
           <div className="stats-empty">No players match the selected filters.</div>
         ) : (
-          <div className="table-scroll">
+          <div className="table-scroll capped-table-scroll">
             <table className="stats-table">
               <thead>
                 <tr>

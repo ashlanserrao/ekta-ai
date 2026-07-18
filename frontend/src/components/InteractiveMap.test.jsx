@@ -40,4 +40,14 @@ describe("InteractiveMap", () => {
     render(<InteractiveMap gates={gates} zones={zones} activeRoute={activeRoute} />);
     expect(screen.getByText("Section 204 Entry")).toBeInTheDocument();
   });
+
+  it("renders a 'you are here' marker at the fan's home gate", () => {
+    render(<InteractiveMap gates={gates} zones={zones} homeGate="Gate 1" />);
+    expect(screen.getByLabelText(/Your gate: Gate 1.*you are here/i)).toBeInTheDocument();
+  });
+
+  it("omits the 'you are here' marker when no home gate is given", () => {
+    render(<InteractiveMap gates={gates} zones={zones} />);
+    expect(screen.queryByLabelText(/you are here/i)).not.toBeInTheDocument();
+  });
 });

@@ -27,8 +27,10 @@ const NODE_COORDINATES = {
   "Concourse SW": { x: 160, y: 320 }
 };
 
-export default function InteractiveMap({ gates = [], zones = [], activeRoute }) {
+export default function InteractiveMap({ gates = [], zones = [], activeRoute, homeGate }) {
   const [hoveredZone, setHoveredZone] = useState(null);
+  const [showMeTooltip, setShowMeTooltip] = useState(false);
+  const homeGateCoord = homeGate ? NODE_COORDINATES[homeGate] : null;
 
   const getCongestionColor = (level) => {
     if (level === "low") return "var(--color-low)";
@@ -248,6 +250,43 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute }) 
               </g>
             );
           })}
+
+          {/* "You are here" pin at the fan's chosen home gate — painted last so it
+              always sits on top of zones/gates/routes. The pin itself is always
+              visible; the "You are here" label only appears on hover/focus.
+              Shown regardless of an active route so orientation never disappears. */}
+          {homeGateCoord && (
+            <g
+              tabIndex="0"
+              role="img"
+              aria-label={`Your gate: ${homeGate} — you are here`}
+              onMouseEnter={() => setShowMeTooltip(true)}
+              onMouseLeave={() => setShowMeTooltip(false)}
+              onFocus={() => setShowMeTooltip(true)}
+              onBlur={() => setShowMeTooltip(false)}
+              className={`you-are-here-marker ${showMeTooltip ? "active" : ""}`}
+            >
+              <circle cx={homeGateCoord.x} cy={homeGateCoord.y} r="10" className="you-are-here-ping ping-1" />
+              <circle cx={homeGateCoord.x} cy={homeGateCoord.y} r="10" className="you-are-here-ping ping-2" />
+              <circle cx={homeGateCoord.x} cy={homeGateCoord.y} r="9" className="you-are-here-pin" />
+              <circle cx={homeGateCoord.x} cy={homeGateCoord.y} r="3.5" fill="#fff" />
+
+              {showMeTooltip && (
+                <g className="you-are-here-tooltip">
+                  <rect
+                    x={homeGateCoord.x - 78}
+                    y={homeGateCoord.y - 42}
+                    width="156"
+                    height="22"
+                    rx="11"
+                  />
+                  <text x={homeGateCoord.x} y={homeGateCoord.y - 27} textAnchor="middle" fontSize="10.5" fontWeight="700">
+                    You are here · {homeGate}
+                  </text>
+                </g>
+              )}
+            </g>
+          )}
         </svg>
         
         {/* HUD Details Panel */}

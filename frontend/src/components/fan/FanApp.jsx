@@ -39,7 +39,7 @@ export default function FanApp({ gates, zones, profile, onLogout, highContrast, 
       case "profile": return <ProfileView profile={profile} />;
       case "settings": return <SettingsView highContrast={highContrast} largeText={largeText} setHighContrast={setHighContrast} setLargeText={setLargeText} />;
       case "map":
-      default: return <MapView gates={gates} zones={zones} activeRoute={activeRoute} />;
+      default: return <MapView gates={gates} zones={zones} activeRoute={activeRoute} profile={profile} />;
     }
   };
 

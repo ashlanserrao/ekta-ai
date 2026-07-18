@@ -87,16 +87,16 @@
   margin-bottom: 1.25rem; border-left: 3px solid var(--accent-secondary);
 }
 
-/* Recent Events keeps growing lists inside the panel instead of pushing the
-   page down. Still scrollable (wheel/touch/keyboard) - the scrollbar itself
-   is just hidden so it doesn't clutter the panel. */
-.history-table-scroll {
+/* Caps long lists/tables inside their panel instead of pushing the whole page
+   down. Still scrollable (wheel/touch/keyboard) - the scrollbar itself is just
+   hidden so it doesn't clutter the panel. */
+.capped-table-scroll {
   max-height: 420px;
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* legacy Edge */
 }
-.history-table-scroll::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+.capped-table-scroll::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
 
 .table-scroll { overflow-x: auto; }
 .stats-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
