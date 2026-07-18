@@ -2,9 +2,10 @@ import time
 import random
 import threading
 import logging
-from backend.app.database import get_db_connection
 
-logging.basicConfig(level=logging.INFO)
+from backend.app.database import db_connection
+from backend.app.telemetry import get_telemetry
+
 logger = logging.getLogger("simulator")
 
 class StadiumSimulator(threading.Thread):
@@ -33,14 +34,16 @@ class StadiumSimulator(threading.Thread):
         logger.info("Stadium Digital Twin Simulator stopped.")
 
     def update_crowd_dynamics(self):
-        conn = get_db_connection()
+        with db_connection() as conn:
+            self._tick(conn)
+
+    def _tick(self, conn):
         cursor = conn.cursor()
-        
+
         # 1. Fetch zones
         cursor.execute("SELECT id, capacity, current_crowd FROM zones")
         zones = cursor.fetchall()
-        
-        from backend.app.telemetry import get_telemetry
+
         telemetry = get_telemetry()
 
         for zone in zones:
@@ -96,6 +99,5 @@ class StadiumSimulator(threading.Thread):
                 "UPDATE gates SET congestion_level = ? WHERE zone_id = ?",
                 (congestion, zone_id)
             )
-            
+
         conn.commit()
-        conn.close()

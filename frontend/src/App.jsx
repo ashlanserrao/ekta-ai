@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Landing from "./components/Landing";
 import FanApp from "./components/fan/FanApp";
 import StaffApp from "./components/staff/StaffApp";
@@ -102,7 +102,7 @@ export default function App() {
     logInteraction(mode, "login", null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     if (screen === "app") logInteraction(viewMode, "logout", null);
     sessionStorage.removeItem("staff_token");
     sessionStorage.removeItem("app_screen");
@@ -111,7 +111,7 @@ export default function App() {
     setToken("");
     setViewMode("fan");
     setScreen("landing");
-  };
+  }, [screen, viewMode]);
 
   useIdleTimer(IDLE_TIMEOUT_MS, handleLogout, screen === "app");
 
@@ -163,7 +163,7 @@ export default function App() {
     fetchAlerts();
     const interval = setInterval(fetchAlerts, 3000);
     return () => clearInterval(interval);
-  }, [screen, viewMode, token]);
+  }, [screen, viewMode, token, handleLogout]);
 
   // Accessibility theme toggles (apply globally, incl. landing)
   useEffect(() => {

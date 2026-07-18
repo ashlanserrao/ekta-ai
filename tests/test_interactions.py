@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.app.main import app
-from backend.app.config import Config
+from backend.app.config import settings
 
 @pytest.fixture(autouse=True)
 def reset_rate_limiters():
@@ -30,7 +30,7 @@ def test_read_interactions_returns_logged_event():
             json={"session_id": "test-session-2", "role": "fan", "event_type": "page_view", "view": "stats", "meta": {}},
         )
 
-        login_res = client.post("/api/v1/auth/staff/login", json={"passcode": Config.STAFF_PASSCODE})
+        login_res = client.post("/api/v1/auth/staff/login", json={"passcode": settings.STAFF_PASSCODE})
         token = login_res.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
 

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
 
-from backend.app.database import get_db_connection
+from backend.app.database import db_connection
 from backend.app.models import InteractionEventCreate, InteractionEvent, InteractionSummary
 from backend.app.auth import get_current_staff_user
 from backend.app.middleware.rate_limit import interaction_limiter
@@ -25,20 +25,19 @@ def log_interaction(event: InteractionEventCreate, req: Request):
     meta_json = json.dumps(event.meta or {})[:MAX_META_CHARS]
 
     try:
-        conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO interaction_events (ts, session_id, role, event_type, view, meta) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                datetime.now(timezone.utc).isoformat(),
-                event.session_id,
-                event.role,
-                event.event_type,
-                event.view,
-                meta_json,
-            ),
-        )
-        conn.commit()
-        conn.close()
+        with db_connection() as conn:
+            conn.execute(
+                "INSERT INTO interaction_events (ts, session_id, role, event_type, view, meta) VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    datetime.now(timezone.utc).isoformat(),
+                    event.session_id,
+                    event.role,
+                    event.event_type,
+                    event.view,
+                    meta_json,
+                ),
+            )
+            conn.commit()
     except sqlite3.Error as e:
         # Analytics logging must never break the caller's actual action.
         logger.warning(f"Failed to record interaction event: {e}")
@@ -50,16 +49,15 @@ def read_interactions(
 ):
     capped_limit = max(1, min(limit, 500))
     try:
-        conn = get_db_connection()
-        rows = conn.execute(
-            "SELECT id, ts, session_id, role, event_type, view, meta FROM interaction_events ORDER BY id DESC LIMIT ?",
-            (capped_limit,),
-        ).fetchall()
-        count_rows = conn.execute(
-            "SELECT event_type, COUNT(*) as n FROM interaction_events GROUP BY event_type"
-        ).fetchall()
-        total = conn.execute("SELECT COUNT(*) as n FROM interaction_events").fetchone()["n"]
-        conn.close()
+        with db_connection() as conn:
+            rows = conn.execute(
+                "SELECT id, ts, session_id, role, event_type, view, meta FROM interaction_events ORDER BY id DESC LIMIT ?",
+                (capped_limit,),
+            ).fetchall()
+            count_rows = conn.execute(
+                "SELECT event_type, COUNT(*) as n FROM interaction_events GROUP BY event_type"
+            ).fetchall()
+            total = conn.execute("SELECT COUNT(*) as n FROM interaction_events").fetchone()["n"]
     except sqlite3.Error as e:
         logger.error(f"Error reading interaction events: {e}")
         raise HTTPException(status_code=500, detail="Database connection error while retrieving interaction history.")

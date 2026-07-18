@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { MapPin } from "lucide-react";
 import MATCHES from "../../../data/matches.json";
-import { useTranslation } from "../../../lib/LanguageContext";
+import { useTranslation } from "../../../lib/useTranslation";
 import MatchDetailModal from "./MatchDetailModal";
 import { roundLabel, formatScore } from "./scheduleHelpers";
 

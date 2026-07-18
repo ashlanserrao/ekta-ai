@@ -1,7 +1,7 @@
 import json
 import os
 import logging
-from backend.app.config import Config
+from backend.app.config import settings
 
 logger = logging.getLogger("rag")
 
@@ -32,11 +32,11 @@ class StadiumRAG:
                 self.index = None
 
     def load_documents(self):
-        if os.path.exists(Config.STADIUM_FACTS_PATH):
-            with open(Config.STADIUM_FACTS_PATH, "r", encoding="utf-8") as f:
+        if os.path.exists(settings.STADIUM_FACTS_PATH):
+            with open(settings.STADIUM_FACTS_PATH, "r", encoding="utf-8") as f:
                 self.documents = json.load(f)
         else:
-            logger.error(f"Stadium facts JSON not found at {Config.STADIUM_FACTS_PATH}")
+            logger.error(f"Stadium facts JSON not found at {settings.STADIUM_FACTS_PATH}")
             self.documents = []
 
     def initialize_index(self):

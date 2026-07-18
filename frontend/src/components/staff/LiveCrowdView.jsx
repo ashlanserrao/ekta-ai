@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 
 export default function LiveCrowdView({ zones }) {
   const { t } = useTranslation();

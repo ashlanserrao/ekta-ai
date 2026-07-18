@@ -5,7 +5,7 @@ import hmac
 from fastapi.testclient import TestClient
 from backend.app.main import app
 from backend.app.middleware.rate_limit import staff_limiter
-from backend.app.config import Config
+from backend.app.config import settings
 
 @pytest.fixture(autouse=True)
 def reset_rate_limiters():
@@ -16,7 +16,7 @@ def test_login_success():
     with TestClient(app) as client:
         response = client.post(
             "/api/v1/auth/staff/login",
-            json={"passcode": Config.STAFF_PASSCODE}
+            json={"passcode": settings.STAFF_PASSCODE}
         )
         assert response.status_code == 200
         data = response.json()
@@ -24,7 +24,7 @@ def test_login_success():
         
         # Verify JWT structure and content
         token = data["token"]
-        payload = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
         assert payload["sub"] == "staff"
         assert "exp" in payload
 
@@ -67,7 +67,7 @@ def test_protected_routes_expired_token():
         "sub": "staff",
         "exp": datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=10)
     }
-    expired_token = jwt.encode(expired_payload, Config.JWT_SECRET, algorithm="HS256")
+    expired_token = jwt.encode(expired_payload, settings.JWT_SECRET, algorithm="HS256")
     
     with TestClient(app) as client:
         headers = {"Authorization": f"Bearer {expired_token}"}
@@ -84,7 +84,7 @@ def test_protected_routes_valid_token():
         # Get valid token
         login_res = client.post(
             "/api/v1/auth/staff/login",
-            json={"passcode": Config.STAFF_PASSCODE}
+            json={"passcode": settings.STAFF_PASSCODE}
         )
         token = login_res.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -125,7 +125,7 @@ def test_staff_rate_limiting():
             # Get valid token
             login_res = client.post(
                 "/api/v1/auth/staff/login",
-                json={"passcode": Config.STAFF_PASSCODE}
+                json={"passcode": settings.STAFF_PASSCODE}
             )
             token = login_res.json()["token"]
             headers = {

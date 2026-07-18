@@ -1,84 +1,103 @@
+"""GenAI orchestration for the fan and staff chat assistants.
+
+Flow: retrieve RAG context -> pick a provider (injected client, Groq, or the
+offline mock) -> let the model decide tool calls -> execute tools against the
+digital twin -> render the final reply (LLM followup for fans, deterministic
+brief for staff). Every path degrades gracefully: retries + a circuit breaker
+guard the Groq calls, and the mock client keeps the app fully functional offline.
+"""
 import json
 import logging
 import re
 import time
+from typing import Callable, Iterator, List, Optional, Tuple
+
 from backend.app.config import settings
+from backend.app.llm_client import GroqLLMClient, LLMResult, ToolCall
+from backend.app.mock_llm import MockLLMClient
 from backend.app.rag import get_rag
-from backend.app.llm_client import MockLLMClient, LLMResult, ToolCall
 from backend.app.tools import get_crowd_density, get_gate_status, get_route
 
 logger = logging.getLogger("orchestrator")
 
-def is_quota_or_rate_limit_error(error_msg: str) -> bool:
-    """Helper to detect quota exhaustion, rate limits, or auth errors."""
-    error_lower = error_msg.lower()
-    return any(w in error_lower for w in [
-        "quota", 
-        "exhausted", 
-        "limit", 
-        "429", 
-        "too many requests",
-        "resource_exhausted",
-        "billing",
-        "api key",
-        "invalid key",
-        "unauthorized",
-        "auth",
-        "credentials",
-        "403",
-        "forbidden"
-    ])
+RETRY_ATTEMPTS = 3
+INITIAL_BACKOFF_SECONDS = 0.5
+BACKOFF_MULTIPLIER = 3
 
-def execute_with_retry_and_circuit_breaker(provider_name: str, client_initializer, system_prompt: str, user_message: str, tools: list, response_format: dict = None, mode: str = None, history: list = None) -> tuple:
-    """
-    Executes an LLM call with a safe 2-time retry (3 attempts total) for transient issues, 
-    and immediately trips a circuit breaker on daily quota/auth errors, or after consecutive failures.
-    Returns: (LLMResult or None, success boolean)
-    """
-    if settings.is_exhausted(provider_name):
-        logger.info(f"{provider_name.capitalize()} circuit breaker is active. Skipping {provider_name.capitalize()}.")
-        return None, False
-        
-    attempts = 3
-    backoff = 0.5
-    
-    for attempt in range(1, attempts + 1):
-        try:
-            client = client_initializer()
-            logger.info(f"[{provider_name.upper()}] Attempt {attempt} of {attempts}...")
-            llm_res = client.generate(system_prompt, user_message, tools, response_format=response_format, mode=mode, history=history)
-            return llm_res, True
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"[{provider_name.upper()}] Attempt {attempt} failed: {error_msg}")
-            
-            if is_quota_or_rate_limit_error(error_msg):
-                logger.warning(f"[{provider_name.upper()}] Quota/Rate Limit/Auth error detected! Tripping circuit breaker immediately.")
-                settings.set_exhausted(provider_name, True)
-                break
-                
-            if attempt < attempts:
-                logger.info(f"Transient error detected. Sleeping {backoff}s before retry...")
-                time.sleep(backoff)
-                backoff *= 3
-            else:
-                logger.warning(f"[{provider_name.upper()}] Failed all {attempts} attempts. Tripping circuit breaker for safety.")
-                settings.set_exhausted(provider_name, True)
-                
-    return None, False
-
-# Tool mapping dict for execution
-tool_map = {
+TOOL_REGISTRY = {
     "get_crowd_density": get_crowd_density,
     "get_gate_status": get_gate_status,
-    "get_route": get_route
+    "get_route": get_route,
 }
 
+# Signature of a model printing a tool call as prose instead of invoking it.
 _TOOL_LEAK_RE = re.compile(
     r'(get_crowd_density|get_gate_status|get_route|<function|function=|'
     r'\{\s*"(zone|from_location|to_location|accessibility_required)")',
     re.IGNORECASE,
 )
+
+QUOTA_ERROR_MARKERS = (
+    "quota", "exhausted", "limit", "429", "too many requests", "resource_exhausted",
+    "billing", "api key", "invalid key", "unauthorized", "auth", "credentials",
+    "403", "forbidden",
+)
+
+
+def is_quota_or_rate_limit_error(error_msg: str) -> bool:
+    """Detect quota exhaustion, rate limits, or auth errors (non-retryable)."""
+    error_lower = error_msg.lower()
+    return any(marker in error_lower for marker in QUOTA_ERROR_MARKERS)
+
+
+def execute_with_retry_and_circuit_breaker(
+    provider_name: str,
+    client_initializer: Callable,
+    system_prompt: str,
+    user_message: str,
+    tools: Optional[list],
+    response_format: Optional[dict] = None,
+    mode: Optional[str] = None,
+    history: Optional[list] = None,
+) -> Tuple[Optional[LLMResult], bool]:
+    """Run an LLM call with retries for transient errors and a circuit breaker.
+
+    Quota/auth errors trip the breaker immediately; transient errors are retried
+    with exponential backoff, tripping the breaker only after all attempts fail.
+    Returns (LLMResult or None, success flag).
+    """
+    if settings.is_exhausted(provider_name):
+        logger.info(f"{provider_name.capitalize()} circuit breaker is active. Skipping.")
+        return None, False
+
+    backoff = INITIAL_BACKOFF_SECONDS
+    for attempt in range(1, RETRY_ATTEMPTS + 1):
+        try:
+            client = client_initializer()
+            logger.info(f"[{provider_name.upper()}] Attempt {attempt} of {RETRY_ATTEMPTS}...")
+            llm_res = client.generate(
+                system_prompt, user_message, tools,
+                response_format=response_format, mode=mode, history=history,
+            )
+            return llm_res, True
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"[{provider_name.upper()}] Attempt {attempt} failed: {error_msg}")
+
+            if is_quota_or_rate_limit_error(error_msg):
+                logger.warning(f"[{provider_name.upper()}] Quota/auth error — tripping circuit breaker immediately.")
+                settings.set_exhausted(provider_name, True)
+                break
+
+            if attempt < RETRY_ATTEMPTS:
+                logger.info(f"Transient error. Sleeping {backoff}s before retry...")
+                time.sleep(backoff)
+                backoff *= BACKOFF_MULTIPLIER
+            else:
+                logger.warning(f"[{provider_name.upper()}] Failed all {RETRY_ATTEMPTS} attempts. Tripping circuit breaker.")
+                settings.set_exhausted(provider_name, True)
+
+    return None, False
 
 
 def _looks_like_tool_leak(text: str) -> bool:
@@ -96,7 +115,7 @@ def _sanitize_leak(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip()
 
 
-def format_tool_brief(executed_results: list) -> str:
+def format_tool_brief(executed_results: List[Tuple[str, object]]) -> str:
     """Deterministically render executed tool results into a plain-language brief.
     Used as the fast-path for staff queries (no second LLM round-trip) and as the
     universal fallback when an LLM followup produces no text."""
@@ -128,6 +147,7 @@ def format_tool_brief(executed_results: list) -> str:
                     f"{' -> '.join(res['path_nodes'])}."
                 )
     return "\n\n".join(parts)
+
 
 def build_system_prompt(rag_results: list, is_staff: bool) -> str:
     """Construct the assistant system prompt with RAG context.
@@ -165,7 +185,53 @@ def build_system_prompt(rag_results: list, is_staff: bool) -> str:
     )
     return prompt
 
-def query_stadium_assistant(user_message: str, is_staff: bool = False, client=None, history: list = None) -> dict:
+
+def _execute_tools(tool_calls: List[ToolCall]) -> List[Tuple[str, object]]:
+    """Run each requested tool against the twin; failures become error payloads."""
+    executed = []
+    for tool in tool_calls:
+        if tool.name not in TOOL_REGISTRY:
+            continue
+        try:
+            logger.info(f"Executing tool {tool.name} with args {tool.args}")
+            executed.append((tool.name, TOOL_REGISTRY[tool.name](**tool.args)))
+        except Exception as e:
+            logger.error(f"Tool execution for {tool.name} failed: {e}")
+            executed.append((tool.name, {"error": str(e)}))
+    return executed
+
+
+def _extract_route(executed_results: List[Tuple[str, object]]) -> Optional[dict]:
+    """Pull the last get_route result so the frontend can render it on the map."""
+    route_data = None
+    for name, res in executed_results:
+        if name == "get_route":
+            route_data = res
+    return route_data
+
+
+def _build_followup_prompt(user_message: str, executed_results: List[Tuple[str, object]]) -> str:
+    tool_results_str = "\n".join(
+        f"Tool {name} output: {json.dumps(res)}" for name, res in executed_results
+    )
+    return (
+        f"The user's request is: {user_message}\n\n"
+        f"Here is the real-time data retrieved from the database to answer their request:\n"
+        f"{tool_results_str}\n\n"
+        f"Generate a professional, natural-language response based on this data."
+    )
+
+
+def _tools_list() -> list:
+    return [get_crowd_density, get_gate_status, get_route]
+
+
+def query_stadium_assistant(
+    user_message: str,
+    is_staff: bool = False,
+    client=None,
+    history: Optional[list] = None,
+) -> dict:
     """
     Orchestrates the GenAI response:
     1. Retrieves top-3 RAG documents
@@ -173,84 +239,50 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
     3. Runs LLM call with tool definitions (injectable client)
     4. Handles tool execution and generates final response
     """
-    rag = get_rag()
-    rag_results = rag.retrieve(user_message, top_k=3)
-    
+    rag_results = get_rag().retrieve(user_message, top_k=3)
     system_prompt = build_system_prompt(rag_results, is_staff)
- 
-    llm_res = None
-    reply = ""
-    tool_calls = []
-    tools_list = [get_crowd_density, get_gate_status, get_route]
+    tools_list = _tools_list()
 
-    # If client is injected, run it directly
+    llm_res: Optional[LLMResult] = None
+    final_provider = "mock"
+
+    # 1. Injected client (tests / previews) runs first.
     if client is not None:
         logger.info(f"Orchestrator query: using injected client {client.__class__.__name__}")
         try:
             llm_res = client.generate(system_prompt, user_message, tools_list, history=history)
-            reply = llm_res.reply
-            tool_calls = llm_res.tool_calls
         except Exception as e:
             logger.error(f"Injected client failed: {e}. Falling back to default failover.")
 
-    # Core Failover Chain
-    final_provider = "mock"
-
-    # 1. Try Groq
+    # 2. Groq, guarded by retry + circuit breaker.
     if llm_res is None and settings.GROQ_API_KEY:
         logger.info("Attempting LLM query with Groq provider.")
-        from backend.app.llm_client import GroqLLMClient
-        result = execute_with_retry_and_circuit_breaker(
+        llm_res, success = execute_with_retry_and_circuit_breaker(
             "groq",
             lambda: GroqLLMClient(settings.GROQ_API_KEY),
             system_prompt,
             user_message,
             tools_list,
-            history=history
+            history=history,
         )
-        if isinstance(result, tuple) and len(result) == 2:
-            llm_res, success = result
-        else:
-            llm_res, success = None, False
-            
         if success and llm_res:
-            reply = llm_res.reply
-            tool_calls = llm_res.tool_calls
             final_provider = "groq"
         else:
+            llm_res = None
             logger.warning("Groq failed or rate-limited. Falling back in pipeline.")
 
-    # 2. Fallback to Mock Client
+    # 3. Offline mock keeps the assistant available with no key / no network.
     if llm_res is None:
         logger.info("Selected LLM provider: Mock client (Fallback)")
-        mock_client = MockLLMClient()
-        llm_res = mock_client.generate(system_prompt, user_message, tools_list, history=history)
-        reply = llm_res.reply
-        tool_calls = llm_res.tool_calls
+        llm_res = MockLLMClient().generate(system_prompt, user_message, tools_list, history=history)
         final_provider = "mock"
 
     logger.info(f"Final LLM execution provider selected: {final_provider}")
+    reply = llm_res.reply
+    tool_calls = llm_res.tool_calls
 
-    # Handle Tool Calls
-    executed_results = []
-    if tool_calls:
-        logger.info(f"LLM generated tool calls: {tool_calls}")
-        for tool in tool_calls:
-            if tool.name in tool_map:
-                try:
-                    logger.info(f"Executing tool {tool.name} with args {tool.args}")
-                    result_data = tool_map[tool.name](**tool.args)
-                    executed_results.append((tool.name, result_data))
-                except Exception as e:
-                    logger.error(f"Tool execution for {tool.name} failed: {e}")
-                    executed_results.append((tool.name, {"error": str(e)}))
-
-    # Route extraction mapping for Fan Assistant map rendering
-    route_data = None
-    if executed_results:
-        for name, res in executed_results:
-            if name == "get_route":
-                route_data = res
+    executed_results = _execute_tools(tool_calls) if tool_calls else []
+    route_data = _extract_route(executed_results)
 
     # For STAFF tool queries, skip the second LLM round-trip: staff want precise
     # numbers, and the deterministic brief is instant (cuts latency ~50%).
@@ -258,41 +290,53 @@ def query_stadium_assistant(user_message: str, is_staff: bool = False, client=No
     if executed_results and is_staff:
         reply = format_tool_brief(executed_results)
     elif executed_results and final_provider != "mock":
-        tool_results_str = "\n".join([f"Tool {name} output: {json.dumps(res)}" for name, res in executed_results])
-        followup_prompt = (
-            f"The user's request is: {user_message}\n\n"
-            f"Here is the real-time data retrieved from the database to answer their request:\n"
-            f"{tool_results_str}\n\n"
-            f"Generate a professional, natural-language response based on this data."
-        )
-
+        followup_prompt = _build_followup_prompt(user_message, executed_results)
         logger.info(f"Generating followup LLM response using provider: {final_provider}")
         try:
             if client is not None:
-                followup_res = client.generate(system_prompt, followup_prompt, tools=[], history=history)
-                reply = followup_res.reply
+                reply = client.generate(system_prompt, followup_prompt, tools=[], history=history).reply
             elif final_provider == "groq" and settings.GROQ_API_KEY:
-                from backend.app.llm_client import GroqLLMClient
-                followup_res = GroqLLMClient(settings.GROQ_API_KEY).generate(system_prompt, followup_prompt, tools=[], history=history)
-                reply = followup_res.reply
+                reply = GroqLLMClient(settings.GROQ_API_KEY).generate(
+                    system_prompt, followup_prompt, tools=[], history=history
+                ).reply
         except Exception as e:
             logger.error(f"Followup LLM response generation failed: {e}")
 
-    # Fallback to direct Python-generated natural-language reply if still empty
+    # Fallback to the deterministic brief if the followup produced no text.
     if not reply.strip() and executed_results:
         reply = format_tool_brief(executed_results)
 
-    last_tool = tool_calls[0].name if tool_calls else None
-
     return {
         "reply": reply,
-        "tool_called": last_tool,
+        "tool_called": tool_calls[0].name if tool_calls else None,
         "route": route_data,
         "rag_used": len(rag_results) > 0,
-        "provider": final_provider
+        "provider": final_provider,
     }
 
-def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=None, history: list = None):
+
+def _sse_token(token: str, provider: str, tool_called: Optional[str], route: Optional[dict]) -> str:
+    return json.dumps({
+        "token": token,
+        "provider": provider,
+        "tool_called": tool_called,
+        "route": route,
+    })
+
+
+def _stream_words(text: str, provider: str, tool_called: Optional[str] = None,
+                  route: Optional[dict] = None) -> Iterator[str]:
+    """Stream a pre-computed reply word by word as SSE JSON payloads."""
+    for word in text.split(" "):
+        yield _sse_token(word + " ", provider, tool_called, route)
+
+
+def stream_stadium_assistant(
+    user_message: str,
+    is_staff: bool = False,
+    client=None,
+    history: Optional[list] = None,
+) -> Iterator[str]:
     """
     Generator yielding Server-Sent Events (SSE) compatible JSON strings for chat streaming.
 
@@ -308,43 +352,34 @@ def stream_stadium_assistant(user_message: str, is_staff: bool = False, client=N
     except Exception as e:
         logger.error(f"Unhandled error in stream_stadium_assistant: {e}")
         fallback = "I'm having trouble processing that right now. Please try again in a moment."
-        for word in fallback.split(" "):
-            yield json.dumps({
-                "token": word + " ",
-                "provider": "mock",
-                "tool_called": None,
-                "route": None
-            })
+        yield from _stream_words(fallback, "mock")
 
 
-def _stream_stadium_assistant_inner(user_message: str, is_staff: bool = False, client=None, history: list = None):
-    rag = get_rag()
-    rag_results = rag.retrieve(user_message, top_k=3)
-    
-    system_prompt = build_system_prompt(rag_results, is_staff)
-
-    # Determine provider and client
-    final_provider = "mock"
-    client_instance = None
-
+def _select_stream_client(client) -> Tuple[object, str]:
+    """Pick the provider for a streaming turn: injected client, Groq, or mock."""
     if client is not None:
-        client_instance = client
-        final_provider = getattr(client, "provider_name", "mock")
-    elif settings.GROQ_API_KEY and not settings.is_exhausted("groq"):
-        from backend.app.llm_client import GroqLLMClient
-        client_instance = GroqLLMClient(settings.GROQ_API_KEY)
-        final_provider = "groq"
-    else:
-        client_instance = MockLLMClient()
-        final_provider = "mock"
+        return client, getattr(client, "provider_name", "mock")
+    if settings.GROQ_API_KEY and not settings.is_exhausted("groq"):
+        return GroqLLMClient(settings.GROQ_API_KEY), "groq"
+    return MockLLMClient(), "mock"
 
-    tools_list = [get_crowd_density, get_gate_status, get_route]
+
+def _stream_stadium_assistant_inner(
+    user_message: str,
+    is_staff: bool = False,
+    client=None,
+    history: Optional[list] = None,
+) -> Iterator[str]:
+    rag_results = get_rag().retrieve(user_message, top_k=3)
+    system_prompt = build_system_prompt(rag_results, is_staff)
+    client_instance, final_provider = _select_stream_client(client)
+    tools_list = _tools_list()
 
     # First pass is NON-streaming: models emit reliable *structured* tool calls this
     # way. Streamed tool-calls are flaky (llama can leak the raw call as prose text),
     # so we decide tools here, then stream only the final answer below.
     reply = ""
-    tool_calls = []
+    tool_calls: List[ToolCall] = []
     try:
         first = client_instance.generate(system_prompt, user_message, tools_list, history=history)
         reply = first.reply or ""
@@ -384,30 +419,13 @@ def _stream_stadium_assistant_inner(user_message: str, is_staff: bool = False, c
     if not tool_calls:
         if not reply.strip():
             reply = "I'm here to help with stadium navigation, facilities, and accessibility. Could you rephrase your question?"
-        for word in reply.split(" "):
-            yield json.dumps({
-                "token": word + " ",
-                "provider": final_provider,
-                "tool_called": None,
-                "route": None
-            })
+        yield from _stream_words(reply, final_provider)
         return
 
     # Tool calls were made: execute them, then stream the answer.
     last_tool = tool_calls[0].name
-    executed_results = []
-    for tool in tool_calls:
-        if tool.name in tool_map:
-            try:
-                result_data = tool_map[tool.name](**tool.args)
-                executed_results.append((tool.name, result_data))
-            except Exception as e:
-                executed_results.append((tool.name, {"error": str(e)}))
-
-    route_data = None
-    for name, res in executed_results:
-        if name == "get_route":
-            route_data = res
+    executed_results = _execute_tools(tool_calls)
+    route_data = _extract_route(executed_results)
 
     followup_reply_sent = False
 
@@ -415,34 +433,17 @@ def _stream_stadium_assistant_inner(user_message: str, is_staff: bool = False, c
     # round-trip (~50% lower latency). Fans get an LLM followup for natural,
     # language-matched prose.
     if not is_staff:
-        tool_results_str = "\n".join([f"Tool {name} output: {json.dumps(res)}" for name, res in executed_results])
-        followup_prompt = (
-            f"The user's request is: {user_message}\n\n"
-            f"Here is the real-time data retrieved from the database to answer their request:\n"
-            f"{tool_results_str}\n\n"
-            f"Generate a professional, natural-language response based on this data."
-        )
+        followup_prompt = _build_followup_prompt(user_message, executed_results)
         try:
             followup_stream = client_instance.generate_stream(system_prompt, followup_prompt, tools=[], history=history)
             for delta in followup_stream:
-                if "content" in delta and delta["content"]:
+                if delta.get("content"):
                     followup_reply_sent = True
-                    yield json.dumps({
-                        "token": delta["content"],
-                        "provider": final_provider,
-                        "tool_called": last_tool,
-                        "route": route_data
-                    })
+                    yield _sse_token(delta["content"], final_provider, last_tool, route_data)
         except Exception as e:
             logger.error(f"Followup stream failed: {e}")
 
     # Staff, or a fan followup that produced nothing: stream the deterministic brief.
     if not followup_reply_sent:
         brief = format_tool_brief(executed_results)
-        for word in brief.split(" "):
-            yield json.dumps({
-                "token": word + " ",
-                "provider": final_provider,
-                "tool_called": last_tool,
-                "route": route_data
-            })
+        yield from _stream_words(brief, final_provider, last_tool, route_data)

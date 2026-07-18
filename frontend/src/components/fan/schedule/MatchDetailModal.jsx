@@ -1,6 +1,6 @@
 import React from "react";
 import { X, MapPin } from "lucide-react";
-import { useTranslation } from "../../../lib/LanguageContext";
+import { useTranslation } from "../../../lib/useTranslation";
 import { roundLabel, teamLabel, formatScore, statusText } from "./scheduleHelpers";
 
 export default function MatchDetailModal({ match, onClose }) {

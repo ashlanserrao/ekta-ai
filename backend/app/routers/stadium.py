@@ -2,11 +2,12 @@ import time
 import logging
 import json
 import asyncio
+import sqlite3
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 
-from backend.app.database import get_db_connection
+from backend.app.database import db_connection
 from backend.app.models import GateStatus, ZoneStatus, StadiumStatus
 
 logger = logging.getLogger("routers.stadium")
@@ -16,26 +17,20 @@ router = APIRouter(prefix="/api/v1/stadium", tags=["stadium"])
 @router.get("/gates", response_model=List[GateStatus])
 def get_gates():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name, status, congestion_level, zone_id FROM gates")
-        gates = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        return gates
-    except Exception as e:
+        with db_connection() as conn:
+            rows = conn.execute("SELECT id, name, status, congestion_level, zone_id FROM gates").fetchall()
+        return [dict(row) for row in rows]
+    except sqlite3.Error as e:
         logger.error(f"Error in get_gates: {e}")
         raise HTTPException(status_code=500, detail="Database connection error while retrieving gates.")
 
 @router.get("/zones", response_model=List[ZoneStatus])
 def get_zones():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name, type, capacity, current_crowd, density FROM zones")
-        zones = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        return zones
-    except Exception as e:
+        with db_connection() as conn:
+            rows = conn.execute("SELECT id, name, type, capacity, current_crowd, density FROM zones").fetchall()
+        return [dict(row) for row in rows]
+    except sqlite3.Error as e:
         logger.error(f"Error in get_zones: {e}")
         raise HTTPException(status_code=500, detail="Database connection error while retrieving zones.")
 

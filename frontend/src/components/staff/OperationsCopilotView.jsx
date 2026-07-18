@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Zap, WifiOff, Brain, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { API_BASE } from "../../lib/api";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 
 const getProviderBadge = (provider, t) => {
   if (provider === "groq") {

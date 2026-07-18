@@ -1,6 +1,6 @@
 import React from "react";
 import { ZoomIn, Accessibility } from "lucide-react";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 
 export default function SettingsView({ highContrast, largeText, setHighContrast, setLargeText }) {
   const { t } = useTranslation();

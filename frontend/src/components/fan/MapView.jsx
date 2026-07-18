@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 import InteractiveMap from "../InteractiveMap";
 
 export default function MapView({ gates, zones, activeRoute, profile }) {

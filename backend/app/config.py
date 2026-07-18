@@ -102,4 +102,3 @@ class Settings(BaseSettings):
         return v
 
 settings = Settings()
-Config = settings

@@ -11,7 +11,7 @@ import time
 import logging
 
 from backend.app.config import settings
-from backend.app.database import get_db_connection
+from backend.app.database import db_connection
 from backend.app.telemetry import get_telemetry
 from backend.app.services.alert_service import extract_and_parse_json
 
@@ -43,13 +43,13 @@ def _slope_per_second(history: list) -> float:
 def compute_forecast() -> dict:
     """Read the current twin state + telemetry and project each zone forward."""
     telemetry = get_telemetry()
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name, type, capacity, current_crowd, density FROM zones")
-    zones = [dict(r) for r in cursor.fetchall()]
-    cursor.execute("SELECT id, name, status, congestion_level, zone_id FROM gates")
-    gates = [dict(r) for r in cursor.fetchall()]
-    conn.close()
+    with db_connection() as conn:
+        zones = [dict(r) for r in conn.execute(
+            "SELECT id, name, type, capacity, current_crowd, density FROM zones"
+        ).fetchall()]
+        gates = [dict(r) for r in conn.execute(
+            "SELECT id, name, status, congestion_level, zone_id FROM gates"
+        ).fetchall()]
 
     risks = []
     for z in zones:

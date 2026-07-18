@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import TEAMS from "../../../data/teams.json";
 import PLAYERS from "../../../data/players.json";
-import { useTranslation } from "../../../lib/LanguageContext";
+import { useTranslation } from "../../../lib/useTranslation";
 import PlayerDetailModal from "./PlayerDetailModal";
 import { formBadgeClass, ratingBadgeClass } from "./statsHelpers";
 

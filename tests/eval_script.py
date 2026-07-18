@@ -166,7 +166,7 @@ def run_evaluation():
     print(f"{'ID':<3} | {'Prompt':<45} | {'Exp. Tool':<18} | {'Act. Tool':<18} | {'Lang':<4} | {'Status':<6}")
     print("-" * 105)
     
-    from backend.app.llm_client import MockLLMClient
+    from backend.app.mock_llm import MockLLMClient
     print("\nLOG: Run is explicitly using MockLLMClient (Test double)")
  
     for case in test_cases:

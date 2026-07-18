@@ -2,7 +2,7 @@ import React from "react";
 import { X } from "lucide-react";
 import PLAYERS from "../../../data/players.json";
 import TEAMS from "../../../data/teams.json";
-import { useTranslation } from "../../../lib/LanguageContext";
+import { useTranslation } from "../../../lib/useTranslation";
 import RadarChartView from "./RadarChartView";
 import { ratingBadgeClass, initials } from "./statsHelpers";
 

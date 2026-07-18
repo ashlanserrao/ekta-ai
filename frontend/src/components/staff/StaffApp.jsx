@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Brain, Users, Map, AlertTriangle, Settings, Menu, LogOut, ZoomIn, Accessibility, History } from "lucide-react";
 import { logInteraction } from "../../lib/api";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 import OperationsCopilotView from "./OperationsCopilotView";
 import LiveCrowdView from "./LiveCrowdView";
 import StadiumMapView from "./StadiumMapView";

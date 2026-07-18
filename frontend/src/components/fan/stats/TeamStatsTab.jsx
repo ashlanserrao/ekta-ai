@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { ClipboardList, Scale, ChevronDown } from "lucide-react";
 import TEAMS from "../../../data/teams.json";
-import { useTranslation } from "../../../lib/LanguageContext";
+import { useTranslation } from "../../../lib/useTranslation";
 import TeamDetailModal from "./TeamDetailModal";
 import RadarChartView from "./RadarChartView";
 import { formBadgeClass, sortByKey } from "./statsHelpers";

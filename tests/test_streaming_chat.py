@@ -3,7 +3,7 @@ import pytest
 
 from backend.app.config import settings
 from backend.app.services.orchestrator import stream_stadium_assistant, format_tool_brief
-from backend.app.llm_client import MockLLMClient
+from backend.app.mock_llm import MockLLMClient
 
 
 class _AlwaysFailsClient:

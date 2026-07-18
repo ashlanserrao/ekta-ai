@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 import MatchesTab from "./schedule/MatchesTab";
 import BracketTab from "./schedule/BracketTab";
 

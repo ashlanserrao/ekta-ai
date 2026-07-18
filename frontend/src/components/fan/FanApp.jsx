@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Map, BarChart3, Ticket, Calendar, User, Settings, Menu, LogOut } from "lucide-react";
 import { logInteraction } from "../../lib/api";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 import MapView from "./MapView";
 import StatsView from "./StatsView";
 import TicketView from "./TicketView";

@@ -1,6 +1,6 @@
 import heapq
 import logging
-from backend.app.database import get_db_connection
+from backend.app.database import db_connection
 
 logger = logging.getLogger("routing")
 
@@ -15,17 +15,12 @@ def find_path(from_node: str, to_node: str, accessible_only: bool = False) -> li
     if from_node == to_node:
         return [from_node]
         
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
     # 1. Fetch edges matching accessibility constraints
+    query = "SELECT from_node, to_node, distance_or_weight FROM edges"
     if accessible_only:
-        cursor.execute("SELECT from_node, to_node, distance_or_weight FROM edges WHERE is_accessible = 1")
-    else:
-        cursor.execute("SELECT from_node, to_node, distance_or_weight FROM edges")
-        
-    rows = cursor.fetchall()
-    conn.close()
+        query += " WHERE is_accessible = 1"
+    with db_connection() as conn:
+        rows = conn.execute(query).fetchall()
     
     # 2. Build adjacency list representation (undirected graph)
     graph = {}

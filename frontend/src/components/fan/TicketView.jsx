@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { MapPin } from "lucide-react";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 
 export default function TicketView({ profile }) {
   const { t } = useTranslation();

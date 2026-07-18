@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 from backend.app.main import app
 from backend.app.middleware.rate_limit import chat_limiter
 from backend.app.database import init_db, get_db_connection
-from backend.app.config import Config
-from backend.app.llm_client import MockLLMClient
+from backend.app.config import settings
+from backend.app.mock_llm import MockLLMClient
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_test_db():
@@ -59,7 +59,7 @@ def test_staff_alerts():
         # Authenticate first
         login_res = client.post(
             "/api/v1/auth/staff/login",
-            json={"passcode": Config.STAFF_PASSCODE}
+            json={"passcode": settings.STAFF_PASSCODE}
         )
         assert login_res.status_code == 200
         token = login_res.json()["token"]
@@ -88,7 +88,7 @@ def test_chat_endpoints():
         # Authenticate for Staff Chat
         login_res = client.post(
             "/api/v1/auth/staff/login",
-            json={"passcode": Config.STAFF_PASSCODE}
+            json={"passcode": settings.STAFF_PASSCODE}
         )
         assert login_res.status_code == 200
         token = login_res.json()["token"]
@@ -125,7 +125,7 @@ def test_chat_endpoints():
 
 def test_mock_french_route_and_language():
     # Offline mock must handle French routing + language detection (live LLM matches natively)
-    from backend.app.llm_client import MockLLMClient
+    from backend.app.mock_llm import MockLLMClient
     mock = MockLLMClient()
     res = mock.generate(
         "You are the FAN ASSISTANT.",

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Trophy } from "lucide-react";
 import MATCHES from "../../../data/matches.json";
-import { useTranslation } from "../../../lib/LanguageContext";
+import { useTranslation } from "../../../lib/useTranslation";
 import MatchDetailModal from "./MatchDetailModal";
 import { ROUND_ORDER, roundLabel } from "./scheduleHelpers";
 

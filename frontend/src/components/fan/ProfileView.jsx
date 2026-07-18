@@ -1,6 +1,6 @@
 import React from "react";
 import { Ticket } from "lucide-react";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 
 const initials = (name) =>
   (name || "Guest Fan").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();

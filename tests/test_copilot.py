@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
-from backend.app.config import Config, settings
+from backend.app.config import settings
 from backend.app.database import init_db
 from backend.app.telemetry import get_telemetry
 from backend.app.middleware.rate_limit import staff_limiter
@@ -79,7 +79,7 @@ def test_copilot_endpoint_requires_auth_and_returns_report():
         assert client.get("/api/v1/staff/copilot").status_code == 401
 
         # Authenticate
-        login = client.post("/api/v1/auth/staff/login", json={"passcode": Config.STAFF_PASSCODE})
+        login = client.post("/api/v1/auth/staff/login", json={"passcode": settings.STAFF_PASSCODE})
         assert login.status_code == 200
         token = login.json()["token"]
 

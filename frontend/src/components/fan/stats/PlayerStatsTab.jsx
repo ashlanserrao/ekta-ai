@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Trophy, Target, Shield, Star, Users, ChevronDown } from "lucide-react";
 import PLAYERS from "../../../data/players.json";
 import TEAMS from "../../../data/teams.json";
-import { useTranslation } from "../../../lib/LanguageContext";
+import { useTranslation } from "../../../lib/useTranslation";
 import PlayerDetailModal from "./PlayerDetailModal";
 import { ratingBadgeClass, sortByKey } from "./statsHelpers";
 

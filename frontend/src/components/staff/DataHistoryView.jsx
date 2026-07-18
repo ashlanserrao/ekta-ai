@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ShieldCheck } from "lucide-react";
 import { API_BASE } from "../../lib/api";
-import { useTranslation } from "../../lib/LanguageContext";
+import { useTranslation } from "../../lib/useTranslation";
 
 const EVENT_LABEL_KEYS = {
   login: "staffHistory.eventLogin",

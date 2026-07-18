@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTranslation } from "../lib/LanguageContext";
+import { useTranslation } from "../lib/useTranslation";
 
 const NODE_COORDINATES = {
   // Gates
