@@ -1,6 +1,6 @@
 # EktaAI — GenAI Stadium Operations Twin (FIFA World Cup 2026)
 
-EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA World Cup 2026. Built with a FastAPI backend and a Vite/React frontend, the system is designed to solve real-world challenges across navigation, crowd dynamics, accessibility, multilingual fan engagement, and staff decision support.
+EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA World Cup 2026. Built with a FastAPI backend and a Vite/React frontend, the system is designed to solve real-world challenges across navigation, crowd dynamics, accessibility, multilingual fan engagement, and staff decision support. A single app ships two dedicated, sidebar-driven portals behind a shared landing page: a **Fan Portal** (live map, match schedule & bracket, player/team stats, ticket, profile, and a multilingual voice/chat assistant) and a **Staff Portal** (live crowd & alerts, the Operations Copilot, and an operations chat) — both fed by the same real-time digital twin.
 
 ---
 
@@ -11,10 +11,11 @@ EktaAI treats the stadium as a live *digital twin* and puts a GenAI layer on top
 
 This primary vertical is reinforced by four supporting ones, all delivered through the same twin + GenAI core:
 
-- **Navigation** — accessible, step-free shortest-path routing between gates, concourses, and seating (Dijkstra over a live graph).
-- **Crowd Management** — real-time zone density telemetry, gate congestion, and auto-generated plain-language alerts.
+- **Navigation** — accessible, step-free shortest-path routing between gates, concourses, and seating (Dijkstra over a live graph), rendered live on the Fan Portal's interactive map.
+- **Crowd Management** — real-time zone density telemetry pushed over Server-Sent Events, gate congestion, and auto-generated plain-language alerts.
 - **Accessibility** — step-free route filtering plus a fully accessible UI (semantic HTML, high-contrast mode, large-text, keyboard nav, voice in/out).
 - **Multilingual Assistance** — first-class English, Spanish, and French for fans (chat + voice), with the LLM matching any language it is addressed in.
+- **Fan Engagement** — match schedule and knockout bracket, player and team stats with radar-chart comparisons, and a digital ticket view, so the twin is also a fan's day-of companion, not just an ops tool.
 
 ## Approach & Logic
 
@@ -25,6 +26,7 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 3. **RAG handles the static knowledge.** Non-live questions (facilities, transit, rules, sustainability) are answered from a `sentence-transformers` + `FAISS` semantic index over a curated stadium-facts file, injected as context.
 4. **The Operations Copilot makes it proactive, not just reactive.** It fits a short-horizon trend to each zone's recent telemetry, projects density ~5 minutes ahead (with ETA-to-critical and the feeding gate), and asks the LLM to synthesize an executive summary + prioritized actions — moving from "answer on demand" to "predict and prescribe."
 5. **Reliability is designed in.** Every GenAI path has a deterministic fallback (mock mode, offline RAG, rule-based alerts/Copilot), a retry + circuit breaker guards the Groq calls, and staff tool-queries render deterministically to cut latency. The app stays fully functional even with no API key or no network.
+6. **One twin, two live portals.** A shared landing page (with a lightweight demo login) routes fans and staff into purpose-built, sidebar-navigated workspaces — both subscribed to the same SQLite twin over a Server-Sent Events stream, so gate/zone status updates push to the UI in real time instead of being polled.
 
 ---
 
@@ -32,11 +34,12 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 
 ```text
                +-------------------------------------------+
-               |             React Frontend                |
-               |  (Fan Assistant & Staff Operations View)  |
+               |             React Frontend (Vite)          |
+               |   Landing (demo auth) -> Fan Portal /       |
+               |   Staff Portal (sidebar workspaces)         |
                +--------------------+----------------------+
                                     |
-                           REST HTTP Requests
+                    REST HTTP Requests + SSE streams
                                     v
 +-----------------------------------+-----------------------------------+
 |                            FastAPI Backend                            |
@@ -68,11 +71,12 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 ### Components
 
 1. **Vite/React Frontend**:
-   - **Fan Assistant**: Multilingual chat widget with voice support (Web Speech API input/output text-to-speech) and an interactive SVG layout mapping real-time route directions and gate congestion.
-   - **Staff Dashboard**: A digital twin status monitoring control panel, presenting real-time zone crowd volumes, auto-generated operations alerts, and a chat window querying congestion mitigations.
-   
+   - **Landing & Auth**: Marketing landing page with feature highlights and a guided onboarding wizard; entry is gated by a demo `test`/`test` login — the fan side needs no backend account, while the staff side exchanges the passcode for a real signed JWT via the staff-auth endpoint.
+   - **Fan Portal**: Sidebar workspace with a Live Stadium Map (SSE-fed gate/zone status plus accessible route rendering), a Stats view (player and team stats with radar-chart comparisons), My Ticket, Match Schedule (fixtures and knockout bracket), Profile, and Settings (accessibility toggles) — plus a floating multilingual chat widget with voice input/output.
+   - **Staff Portal**: Sidebar workspace with Live Crowd View, Live Alerts, the Operations Copilot panel, a Stadium Map view, and a dedicated Staff Chat, all behind passcode-gated JWT auth.
+
 2. **FastAPI REST API**:
-   - Clean endpoints for real-time status feeds, alerts, and LLM queries.
+   - Clean endpoints for real-time status feeds, alerts, and LLM queries, plus a Server-Sent Events stream (`GET /api/v1/stadium/stream`) that pushes gate/zone updates to the frontend; fan and staff chat can also stream token-by-token over SSE.
    - Implements input sanitization and token/IP rate limiting.
    
 3. **SQLite Digital Twin & Simulator**:
@@ -100,7 +104,7 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 - **Security**: Tightened CORS configurations restricting origins, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. The Staff Portal is secured with passcode-gated JWT authentication (4 hours expiration, token stored in sessionStorage) and a higher burst rate limit of 30 requests per 10 seconds per IP.
 - **Accessibility**: Built with semantic HTML (headers, buttons, main, labels), high-contrast accessibility mode, text size optimization, keyboard navigation support, and voice recognition/synthesis.
 - **Testing**: Backend unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, multilingual (French) routing, and the Operations Copilot (forecast + endpoint); frontend component tests (Vitest + React Testing Library) for the map, fan chat/prompt-chips, and staff Copilot panel; plus an automated eval script verifying 15 bilingual/tool-calling prompts. CI runs the full suite on every push.
-- **Latency**: Staff operational queries return in a single LLM round-trip — the structured tool result is rendered deterministically instead of paying for a second "phrasing" call — while fan replies keep an LLM pass for natural, language-matched prose.
+- **Latency**: Staff operational queries return in a single LLM round-trip — the structured tool result is rendered deterministically instead of paying for a second "phrasing" call — while fan replies keep an LLM pass for natural, language-matched prose. Both fan and staff chat additionally support SSE streaming, so replies render token-by-token instead of waiting on the full response.
 
 ---
 
@@ -159,7 +163,7 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 - **Static facts are curated.** The RAG knowledge base (`backend/data/stadium_facts.json`) is a hand-authored, representative set of stadium information (gates, transit, dining, accessibility, rules, family services, sustainability) rather than a live CMS feed.
 - **Language scope.** English, Spanish, and French are first-class (UI, voice, and offline mock). The live LLM will still respond in other languages it is addressed in; only the offline fallback and UI chrome are limited to these three.
 - **GenAI provider is optional.** Groq is the live LLM. If `GROQ_API_KEY` is absent, rate-limited, or unreachable, the system transparently falls back to deterministic mock responses, offline RAG, and rule-based alerts/Copilot — so the demo never hard-fails.
-- **Demo-grade auth.** Staff access uses a shared passcode + JWT suitable for a demo. Production would integrate real identity (SSO/role-based access); the code refuses to boot in `ENV=production` with default/weak secrets.
+- **Demo-grade auth.** The landing page uses a hardcoded `test`/`test` credential gate for a fast hackathon login flow. On the fan side this is UI-only (no backend account system); on the staff side it still exchanges the shared passcode for a real signed JWT via the existing staff-auth endpoint, so protected staff APIs stay properly gated. Production would integrate real identity (SSO/role-based access) end-to-end; the code refuses to boot in `ENV=production` with default/weak secrets.
 - **Single-process deployment.** The digital-twin simulator and in-memory rate limiter assume one backend process for the demo (see scaling notes below).
 
 ---
