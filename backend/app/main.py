@@ -16,6 +16,7 @@ from backend.app.routers.alerts import router as alerts_router
 from backend.app.routers.auth import router as auth_router
 from backend.app.routers.copilot import router as copilot_router
 from backend.app.routers.interactions import router as interactions_router
+from backend.app.routers.transit import router as transit_router
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -91,6 +92,7 @@ app.include_router(alerts_router)
 app.include_router(auth_router)
 app.include_router(copilot_router)
 app.include_router(interactions_router)
+app.include_router(transit_router)
 
 # Health endpoint at root
 @app.get("/")

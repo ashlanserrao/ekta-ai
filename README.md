@@ -9,13 +9,28 @@ EktaAI is a GenAI-powered stadium operations assistant designed for the FIFA Wor
 **Primary: Operational Intelligence & Real-Time Decision Support.**
 EktaAI treats the stadium as a live *digital twin* and puts a GenAI layer on top of it that not only answers questions but **proactively forecasts congestion and recommends actions** to venue staff before bottlenecks form (the Operations Copilot).
 
-This primary vertical is reinforced by four supporting ones, all delivered through the same twin + GenAI core:
+This primary vertical is reinforced by supporting ones, all delivered through the same twin + GenAI core:
 
 - **Navigation** — accessible, step-free shortest-path routing between gates, concourses, and seating (Dijkstra over a live graph), rendered live on the Fan Portal's interactive map.
 - **Crowd Management** — real-time zone density telemetry pushed over Server-Sent Events, gate congestion, and auto-generated plain-language alerts.
 - **Accessibility** — step-free route filtering plus a fully accessible UI (semantic HTML, high-contrast mode, large-text, keyboard nav, voice in/out).
+- **Transportation** — live transit lines (metro, shuttle, BRT) are part of the digital twin: the Fan Portal's "Getting Here" view shows next departures and crowding, with a GenAI departure advisory steering fans to the least-loaded line.
+- **Sustainability** — the same advisory carries per-mode CO2-savings nudges, and the Copilot's transit-aware egress plan drains the stadium through public transit in staggered waves instead of surging private-car pickups.
 - **Multilingual Assistance** — first-class English, Spanish, and French for fans (chat + voice), with the LLM matching any language it is addressed in.
 - **Fan Engagement** — match schedule and knockout bracket, player and team stats with radar-chart comparisons, and a digital ticket view, so the twin is also a fan's day-of companion, not just an ops tool.
+
+### Problem-Statement Coverage
+
+| Vertical in the brief | Feature that delivers it |
+|---|---|
+| Navigation | Dijkstra routing over the live `nodes`/`edges` graph; routes rendered on the fan map via chat |
+| Crowd management | Simulated IoT telemetry, SSE live feeds, GenAI plain-language alerts |
+| Accessibility | `accessible_only` step-free routing; high-contrast/large-text/keyboard/voice UI |
+| Transportation | `transit_lines` in the twin; "Getting Here" fan view; `GET /api/v1/transit` with GenAI departure advisory |
+| Sustainability | Per-mode CO2-savings nudges; transit-aware staggered egress in the Copilot |
+| Multilingual assistance | EN/ES/FR UI + chat + voice; LLM matches any language it is addressed in |
+| Operational intelligence | Staff portal: live crowd, alerts, data history, deterministic tool briefs |
+| Real-time decision support | Operations Copilot: 5-minute congestion forecasts, prioritized actions, egress staggering plan |
 
 ## Approach & Logic
 
@@ -72,7 +87,7 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 
 1. **Vite/React Frontend**:
    - **Landing & Auth**: A bento-grid marketing landing page (solid-color icon tiles, subtle glassmorphism via a shared `.glass-panel` treatment, [Lucide](https://lucide.dev) icons throughout — no emoji) with a guided, multi-step onboarding wizard whose in-progress draft persists to `sessionStorage`; entry is gated by a demo `test`/`test` login — the fan side needs no backend account, while the staff side exchanges the passcode for a real signed JWT via the staff-auth endpoint.
-   - **Fan Portal**: Sidebar workspace with a Live Stadium Map (SSE-fed gate/zone status plus accessible route rendering), a Stats view (player and team stats with radar-chart comparisons), My Ticket, Match Schedule (fixtures and knockout bracket), Profile (incl. dietary preference), and Settings (accessibility toggles) — plus a floating multilingual chat widget with voice input/output.
+   - **Fan Portal**: Sidebar workspace with a Live Stadium Map (SSE-fed gate/zone status plus accessible route rendering), a Stats view (player and team stats with radar-chart comparisons), My Ticket, Match Schedule (fixtures and knockout bracket), a "Getting Here" transit view (live line crowding, next departures, GenAI departure advisory, CO2-savings nudges), Profile (incl. dietary preference), and Settings (accessibility toggles) — plus a floating multilingual chat widget with voice input/output.
    - **Staff Portal**: Sidebar workspace with Live Crowd View, Live Alerts, the Operations Copilot panel, a Stadium Map view, a Data History view (see below), and a dedicated Staff Chat, all behind passcode-gated JWT auth.
    - **Session persistence**: the active workspace (fan/staff) survives a page refresh via `sessionStorage`, and an idle timer automatically logs the user out after 30 minutes of inactivity.
 
@@ -81,8 +96,8 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
    - Implements input sanitization and token/IP rate limiting.
    
 3. **SQLite Digital Twin & Simulator**:
-   - Holds state data for stadium gates, zones, and the `nodes`/`edges` routing graph, plus an `interaction_events` table (see **Data Collection & Privacy** below).
-   - Run by a background loop that evolves crowd levels via a momentum model to mimic live IoT sensor telemetry, recording per-zone history for the Copilot's forecasts.
+   - Holds state data for stadium gates, zones, the `nodes`/`edges` routing graph, and `transit_lines` (metro/shuttle/BRT links with live passenger loads), plus an `interaction_events` table (see **Data Collection & Privacy** below).
+   - Run by a background loop that evolves crowd levels *and transit-line loads* via a momentum model to mimic live IoT sensor telemetry, recording per-zone history for the Copilot's forecasts.
 
 4. **Dijkstra Routing Graph (routing.py)**:
    - Computes shortest paths dynamically between gates, concourses, stairs, elevators, and seating sections using a dynamic `nodes` and `edges` graph in SQLite. Features an `accessible_only` filter to construct step-free routes for limited-mobility fans.
@@ -97,6 +112,11 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
    - Unlike the reactive chat assistant, the Copilot continuously reads the digital twin, fits a short-horizon trend to each zone's recent density telemetry, and **forecasts congestion ~5 minutes ahead** (projected density, ETA-to-critical, and the gate feeding each zone).
    - A GenAI pass then synthesizes an executive **situation summary** and a **prioritized list of specific recommended actions** (e.g. "halt inflow at Gate 3, open overflow routing"), with a fully deterministic fallback when offline. Exposed at `GET /api/v1/staff/copilot` and surfaced as the centerpiece panel of the Staff Dashboard.
    - The twin's simulator uses a **momentum model** (slowly-varying ingress/egress pressure) rather than white noise, so trends are sustained and genuinely forecastable.
+   - The report also carries a **transit-aware egress staggering plan**: the densest zones are released first in 5-minute waves, each wave routed toward the currently least-loaded transit line, with the twin's spare passengers/minute capacity and a sustainability note attached.
+
+8. **Transit & Sustainable Travel (Transportation vertical)**:
+   - `GET /api/v1/transit` (public) serves the live `transit_lines` state — per-line next-departure countdowns, crowding labels, and per-mode CO2-savings estimates — plus a cached **GenAI departure advisory** that steers fans toward the least-crowded, greenest way home (deterministic fallback offline, like every other GenAI path).
+   - Surfaced in the Fan Portal as the "Getting Here" view (EN/ES/FR) and consumed by the Copilot's egress planner on the staff side.
 
 ---
 
@@ -114,7 +134,7 @@ The Staff Portal includes a **Data History** view (`GET /api/v1/interactions`, s
 
 - **Security**: Tightened CORS configurations restricting origins, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. The Staff Portal is secured with passcode-gated JWT authentication (4 hours expiration, token stored in sessionStorage) and a higher burst rate limit of 30 requests per 10 seconds per IP. The frontend additionally enforces its own 30-minute idle-timeout auto-logout independent of the JWT's own expiry.
 - **Accessibility**: Built with semantic HTML (headers, buttons, main, labels), high-contrast accessibility mode, text size optimization, keyboard navigation support, and voice recognition/synthesis.
-- **Testing**: Backend unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, multilingual (French) routing, the Operations Copilot (forecast + endpoint), and the interaction-logging endpoints; frontend component tests (Vitest + React Testing Library) for the map, fan chat/prompt-chips, and staff Copilot panel; plus an automated eval script verifying 15 bilingual/tool-calling prompts. CI runs the full suite on every push.
+- **Testing**: Backend unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, multilingual (French) routing, the Operations Copilot (forecast + endpoint), the transit endpoint/advisory/egress plan, and the interaction-logging endpoints; frontend component tests (Vitest + React Testing Library) for the map, fan chat/prompt-chips, the transit view, and staff Copilot panel; plus an automated eval script verifying 15 bilingual/tool-calling prompts. CI runs the full suite on every push.
 - **Latency**: Staff operational queries return in a single LLM round-trip — the structured tool result is rendered deterministically instead of paying for a second "phrasing" call — while fan replies keep an LLM pass for natural, language-matched prose. Both fan and staff chat additionally support SSE streaming, so replies render token-by-token instead of waiting on the full response.
 
 ---

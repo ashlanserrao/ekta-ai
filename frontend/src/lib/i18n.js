@@ -12,8 +12,21 @@ export const translations = {
   en: {
     nav: {
       map: "Live Stadium Map", stats: "Stats", ticket: "My Ticket",
-      schedule: "Match Schedule", profile: "Profile", settings: "Settings", logout: "Log Out",
+      schedule: "Match Schedule", transit: "Getting Here", profile: "Profile", settings: "Settings", logout: "Log Out",
       logoSub: "Fan Portal",
+    },
+    transit: {
+      heading: "Getting Here & Home",
+      sub: "Live transit links from the digital twin — next departures, crowding, and the greenest way to travel.",
+      advisoryHeading: "AI Departure Advisory",
+      nextDeparture: "Next departure", minSuffix: "min",
+      full: "full",
+      capacityLabel: "Spare outbound capacity", perMinute: "passengers / minute",
+      low: "quiet", medium: "moderate", high: "busy",
+      statusOnTime: "On time", statusDelayed: "Delayed",
+      co2Note: "~{kg} kg CO2 saved vs driving",
+      loading: "Connecting to live transit feed…",
+      providerGroq: "Groq Core", providerOffline: "Offline Mode",
     },
     map: {
       hint: "Ask the assistant (bottom-right) for directions to light up a path.",
@@ -110,6 +123,10 @@ export const translations = {
       connecting: "Connecting to Operations Copilot…",
       providerGroq: "Groq Core", providerOffline: "Offline Mode",
       etaSuffix: "m to critical",
+      egressHeading: "Transit-Aware Egress Staggering",
+      egressWave: "Wave", egressReleaseNow: "release now", egressHoldSuffix: "-min hold",
+      egressVia: "via", egressToward: "toward",
+      egressCapacityLabel: "Spare transit capacity", egressPerMin: "passengers/min",
     },
     staffHistory: {
       heading: "Data History", sub: "What EktaAI collects about how the platform is used.",
@@ -124,8 +141,21 @@ export const translations = {
   es: {
     nav: {
       map: "Mapa del Estadio en Vivo", stats: "Estadísticas", ticket: "Mi Entrada",
-      schedule: "Calendario de Partidos", profile: "Perfil", settings: "Ajustes", logout: "Cerrar Sesión",
+      schedule: "Calendario de Partidos", transit: "Cómo Llegar", profile: "Perfil", settings: "Ajustes", logout: "Cerrar Sesión",
       logoSub: "Portal del Aficionado",
+    },
+    transit: {
+      heading: "Cómo Llegar y Volver",
+      sub: "Conexiones de transporte en vivo del gemelo digital — próximas salidas, aforo y la forma más ecológica de viajar.",
+      advisoryHeading: "Aviso de Salida con IA",
+      nextDeparture: "Próxima salida", minSuffix: "min",
+      full: "lleno",
+      capacityLabel: "Capacidad de salida disponible", perMinute: "pasajeros / minuto",
+      low: "tranquilo", medium: "moderado", high: "concurrido",
+      statusOnTime: "Puntual", statusDelayed: "Con retraso",
+      co2Note: "~{kg} kg de CO2 ahorrados frente al coche",
+      loading: "Conectando con el transporte en vivo…",
+      providerGroq: "Núcleo Groq", providerOffline: "Modo Sin Conexión",
     },
     map: {
       hint: "Pide direcciones al asistente (abajo a la derecha) para iluminar una ruta.",
@@ -222,6 +252,10 @@ export const translations = {
       connecting: "Conectando con el Copiloto de Operaciones…",
       providerGroq: "Núcleo Groq", providerOffline: "Modo Sin Conexión",
       etaSuffix: " min para nivel crítico",
+      egressHeading: "Escalonamiento de Salida según Transporte",
+      egressWave: "Ola", egressReleaseNow: "liberar ahora", egressHoldSuffix: " min de espera",
+      egressVia: "por", egressToward: "hacia",
+      egressCapacityLabel: "Capacidad de transporte disponible", egressPerMin: "pasajeros/min",
     },
     staffHistory: {
       heading: "Historial de Datos", sub: "Qué recopila EktaAI sobre el uso de la plataforma.",
@@ -236,8 +270,21 @@ export const translations = {
   fr: {
     nav: {
       map: "Carte du Stade en Direct", stats: "Statistiques", ticket: "Mon Billet",
-      schedule: "Calendrier des Matchs", profile: "Profil", settings: "Paramètres", logout: "Se Déconnecter",
+      schedule: "Calendrier des Matchs", transit: "Venir au Stade", profile: "Profil", settings: "Paramètres", logout: "Se Déconnecter",
       logoSub: "Portail Supporter",
+    },
+    transit: {
+      heading: "Venir au Stade et Rentrer",
+      sub: "Liaisons de transport en direct du jumeau numérique — prochains départs, affluence et le moyen le plus écologique de voyager.",
+      advisoryHeading: "Conseil de Départ IA",
+      nextDeparture: "Prochain départ", minSuffix: "min",
+      full: "rempli",
+      capacityLabel: "Capacité de sortie disponible", perMinute: "passagers / minute",
+      low: "calme", medium: "modéré", high: "chargé",
+      statusOnTime: "À l'heure", statusDelayed: "Retardé",
+      co2Note: "~{kg} kg de CO2 économisés par rapport à la voiture",
+      loading: "Connexion au flux de transport en direct…",
+      providerGroq: "Noyau Groq", providerOffline: "Mode Hors Ligne",
     },
     map: {
       hint: "Demandez un itinéraire à l'assistant (en bas à droite) pour l'afficher sur la carte.",
@@ -334,6 +381,10 @@ export const translations = {
       connecting: "Connexion au Copilote des Opérations…",
       providerGroq: "Noyau Groq", providerOffline: "Mode Hors Ligne",
       etaSuffix: " min avant niveau critique",
+      egressHeading: "Échelonnement de Sortie selon les Transports",
+      egressWave: "Vague", egressReleaseNow: "libérer maintenant", egressHoldSuffix: " min d'attente",
+      egressVia: "par", egressToward: "vers",
+      egressCapacityLabel: "Capacité de transport disponible", egressPerMin: "passagers/min",
     },
     staffHistory: {
       heading: "Historique des Données", sub: "Ce qu'EktaAI collecte sur l'utilisation de la plateforme.",

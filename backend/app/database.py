@@ -70,6 +70,22 @@ def init_db():
     )
     """)
 
+    # Public-transit links serving the stadium. current_load (0..1) is evolved by
+    # the simulator like zone densities, so transit is part of the live twin and
+    # the Copilot can plan egress against real-time line capacity.
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transit_lines (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        mode TEXT NOT NULL,
+        destination TEXT NOT NULL,
+        headway_minutes REAL NOT NULL,
+        capacity_per_departure INTEGER NOT NULL,
+        current_load REAL NOT NULL DEFAULT 0.0,
+        status TEXT NOT NULL DEFAULT 'on_time'
+    )
+    """)
+
     # Anonymized product-analytics log: a random per-browser-session id, a coarse
     # event type/view, and small non-sensitive counters only. Never raw chat text,
     # names, or emails — this exists to demonstrate what is (and isn't) collected.
@@ -113,6 +129,21 @@ def init_db():
         cursor.executemany(
             "INSERT OR IGNORE INTO gates (id, name, status, congestion_level, zone_id) VALUES (?, ?, ?, ?, ?)",
             gates_data
+        )
+        conn.commit()
+
+    # Seed transit lines (if empty)
+    cursor.execute("SELECT COUNT(*) as count FROM transit_lines")
+    if cursor.fetchone()["count"] == 0:
+        transit_data = [
+            ("Line-M1", "Metro Line 1", "metro", "Downtown Central", 5.0, 900, 0.55, "on_time"),
+            ("Line-M2", "Metro Line 2", "metro", "Airport / Convention Center", 8.0, 900, 0.35, "on_time"),
+            ("Shuttle-N", "Stadium Shuttle North", "shuttle", "Park & Ride North", 4.0, 60, 0.70, "on_time"),
+            ("BRT-3", "Bus Rapid Transit 3", "bus", "University District", 6.0, 120, 0.40, "delayed"),
+        ]
+        cursor.executemany(
+            "INSERT OR IGNORE INTO transit_lines (id, name, mode, destination, headway_minutes, capacity_per_departure, current_load, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            transit_data
         )
         conn.commit()
 

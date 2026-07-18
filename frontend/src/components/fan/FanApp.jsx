@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Map, BarChart3, Ticket, Calendar, User, Settings, Menu, LogOut } from "lucide-react";
+import { Map, BarChart3, Ticket, Calendar, TrainFront, User, Settings, Menu, LogOut } from "lucide-react";
 import { logInteraction } from "../../lib/api";
 import { useTranslation } from "../../lib/useTranslation";
 import MapView from "./MapView";
@@ -8,6 +8,7 @@ import TicketView from "./TicketView";
 import ScheduleView from "./ScheduleView";
 import ProfileView from "./ProfileView";
 import SettingsView from "./SettingsView";
+import TransitView from "./TransitView";
 import ChatWidget from "./ChatWidget";
 
 const NAV = [
@@ -15,6 +16,7 @@ const NAV = [
   { key: "stats", icon: BarChart3, labelKey: "nav.stats" },
   { key: "ticket", icon: Ticket, labelKey: "nav.ticket" },
   { key: "schedule", icon: Calendar, labelKey: "nav.schedule" },
+  { key: "transit", icon: TrainFront, labelKey: "nav.transit" },
   { key: "profile", icon: User, labelKey: "nav.profile" },
   { key: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
@@ -38,6 +40,7 @@ export default function FanApp({ gates, zones, profile, onLogout, highContrast, 
       case "stats": return <StatsView />;
       case "ticket": return <TicketView profile={profile} />;
       case "schedule": return <ScheduleView />;
+      case "transit": return <TransitView />;
       case "profile": return <ProfileView profile={profile} />;
       case "settings": return <SettingsView highContrast={highContrast} largeText={largeText} setHighContrast={setHighContrast} setLargeText={setLargeText} />;
       case "map":

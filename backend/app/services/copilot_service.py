@@ -14,6 +14,7 @@ from backend.app.config import settings
 from backend.app.database import db_connection
 from backend.app.telemetry import get_telemetry
 from backend.app.services.alert_service import extract_and_parse_json
+from backend.app.services.transit_service import egress_capacity_per_minute, get_transit_lines
 
 logger = logging.getLogger("services.copilot")
 
@@ -21,6 +22,8 @@ HORIZON_SECONDS = 300          # forecast 5 minutes ahead
 CRITICAL_DENSITY = 0.85
 WARNING_DENSITY = 0.70
 TREND_EPS = 0.0002             # per-second slope below this is treated as "stable"
+
+EGRESS_WAVE_STAGGER_MINUTES = 5  # gap between staggered zone-release waves
 
 
 def _slope_per_second(history: list) -> float:
@@ -143,6 +146,53 @@ def _deterministic_report(top: list) -> dict:
     return {"summary": summary, "recommendations": recommendations}
 
 
+def build_egress_plan(risks: list) -> dict:
+    """Stagger post-match zone releases against live transit capacity.
+
+    Densest zones leave first toward the least-loaded transit lines, in waves
+    spaced EGRESS_WAVE_STAGGER_MINUTES apart, so the concourses and the transit
+    network drain in step instead of spiking together. Fewer idling shuttles and
+    private-car pickups is also the sustainable way to empty a stadium.
+    """
+    lines = get_transit_lines()
+    capacity_per_min = egress_capacity_per_minute(lines)
+    lines_by_load = sorted(lines, key=lambda l: l["current_load"])
+
+    waves = []
+    ordered = sorted(risks, key=lambda r: r["current_density"], reverse=True)
+    for idx, risk in enumerate(ordered):
+        # Round-robin the release targets across the emptiest lines.
+        target = lines_by_load[idx % len(lines_by_load)] if lines_by_load else None
+        hold_minutes = idx * EGRESS_WAVE_STAGGER_MINUTES
+        target_name = target["name"] if target else "surface streets"
+        timing = "immediately" if hold_minutes == 0 else f"after a {hold_minutes}-minute hold"
+        rationale = (
+            f"{risk['zone_name']} at {int(risk['current_density'] * 100)}% releases {timing} "
+            f"toward {target_name}"
+        )
+        if target:
+            rationale += f" ({int(target['current_load'] * 100)}% loaded)"
+        waves.append({
+            "wave": idx + 1,
+            "zone": risk["zone_name"],
+            "hold_minutes": hold_minutes,
+            "release_via": ", ".join(risk["feeding_gates"]) or "all gates",
+            "target_line": target_name,
+            "target_destination": target["destination"] if target else None,
+            "rationale": rationale + ".",
+        })
+
+    return {
+        "waves": waves,
+        "transit_capacity_per_minute": capacity_per_min,
+        "sustainability_note": (
+            "Staggered release keeps fans on public transit instead of surge-priced cars: "
+            f"current spare transit capacity is ~{capacity_per_min} passengers/minute across "
+            f"{len(lines)} lines."
+        ),
+    }
+
+
 def generate_copilot_report(use_llm: bool = True) -> dict:
     """Produce the full Operations Copilot report (forecast + summary + actions)."""
     forecast = compute_forecast()
@@ -193,11 +243,18 @@ def generate_copilot_report(use_llm: bool = True) -> dict:
         except Exception as e:
             logger.error(f"Copilot LLM synthesis failed: {e}. Using deterministic report.")
 
+    try:
+        egress_plan = build_egress_plan(top)
+    except Exception as e:
+        logger.error(f"Egress plan computation failed: {e}")
+        egress_plan = {"waves": [], "transit_capacity_per_minute": 0, "sustainability_note": ""}
+
     return {
         "generated_at": time.time(),
         "provider": provider,
         "summary": summary,
         "recommendations": recommendations,
         "risks": top,
+        "egress_plan": egress_plan,
         "horizon_minutes": HORIZON_SECONDS // 60,
     }

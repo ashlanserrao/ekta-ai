@@ -54,6 +54,31 @@ class PlainLanguageAlert(BaseModel):
     message: str
     recommended_action: str
 
+class TransitLine(BaseModel):
+    id: str
+    name: str
+    mode: Literal["metro", "rail", "shuttle", "bus"]
+    destination: str
+    headway_minutes: float
+    capacity_per_departure: int
+    current_load: float
+    status: Literal["on_time", "delayed"]
+    minutes_to_next: float
+    crowding: Literal["low", "medium", "high"]
+    co2_saved_kg_per_trip: float
+
+class TransitAdvisory(BaseModel):
+    generated_at: float
+    provider: str
+    summary: str
+    tips: List[str]
+
+class TransitStatus(BaseModel):
+    lines: List[TransitLine]
+    advisory: TransitAdvisory
+    egress_capacity_per_minute: int
+    timestamp: float
+
 class InteractionEventCreate(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=64, description="Random per-browser-session id, not tied to any personal identifier")
     role: Literal["fan", "staff"]

@@ -36,6 +36,7 @@ class StadiumSimulator(threading.Thread):
     def update_crowd_dynamics(self):
         with db_connection() as conn:
             self._tick(conn)
+            self._tick_transit(conn)
 
     def _tick(self, conn):
         cursor = conn.cursor()
@@ -100,4 +101,30 @@ class StadiumSimulator(threading.Thread):
                 (congestion, zone_id)
             )
 
+        conn.commit()
+
+    def _tick_transit(self, conn):
+        """Evolve each transit line's passenger load with the same momentum model
+        as zones, so line crowding trends are sustained and forecastable too."""
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, current_load FROM transit_lines")
+        for line in cursor.fetchall():
+            key = f"transit:{line['id']}"
+            bias = self._bias.get(key, 0.0)
+            bias = bias * 0.85 + random.uniform(-0.008, 0.008)
+            bias = max(-0.04, min(0.04, bias))
+
+            load_now = line["current_load"]
+            if load_now > 0.90 and bias > 0:
+                bias = -abs(bias)
+            elif load_now < 0.10 and bias < 0:
+                bias = abs(bias)
+            self._bias[key] = bias
+
+            new_load = load_now + bias + random.uniform(-0.01, 0.01)
+            new_load = round(max(0.05, min(0.95, new_load)), 2)
+            cursor.execute(
+                "UPDATE transit_lines SET current_load = ? WHERE id = ?",
+                (new_load, line["id"])
+            )
         conn.commit()

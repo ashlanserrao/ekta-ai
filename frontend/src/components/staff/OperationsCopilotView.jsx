@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Zap, WifiOff, Brain, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Zap, WifiOff, Brain, CheckCircle2, TrendingUp, TrendingDown, Minus, TrainFront, Leaf } from "lucide-react";
 import { API_BASE } from "../../lib/api";
 import { useTranslation } from "../../lib/useTranslation";
 
@@ -82,6 +82,34 @@ export default function OperationsCopilotView({ token, onLogout }) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {copilot.egress_plan && copilot.egress_plan.waves.length > 0 && (
+              <div className="copilot-forecast" style={{ marginTop: "0.75rem" }}>
+                <div className="bold-text" style={{ marginBottom: "0.4rem" }}>
+                  <TrainFront size={16} style={{ verticalAlign: "-3px", marginRight: "0.35rem" }} />
+                  {t("staffCopilot.egressHeading")}
+                </div>
+                {copilot.egress_plan.waves.map((wave) => (
+                  <div key={wave.wave} className="copilot-forecast-row">
+                    <span className="copilot-zone">
+                      {t("staffCopilot.egressWave")} {wave.wave} · {wave.zone}
+                    </span>
+                    <span className="copilot-projection">
+                      {wave.hold_minutes === 0
+                        ? t("staffCopilot.egressReleaseNow")
+                        : `${wave.hold_minutes}${t("staffCopilot.egressHoldSuffix")}`}
+                    </span>
+                    <span className="copilot-trend medium">
+                      {t("staffCopilot.egressVia")} {wave.release_via} {t("staffCopilot.egressToward")} {wave.target_line}
+                    </span>
+                  </div>
+                ))}
+                <div className="text-small-muted" style={{ marginTop: "0.4rem" }}>
+                  <Leaf size={13} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />
+                  {t("staffCopilot.egressCapacityLabel")}: {copilot.egress_plan.transit_capacity_per_minute} {t("staffCopilot.egressPerMin")} — {copilot.egress_plan.sustainability_note}
+                </div>
               </div>
             )}
 
