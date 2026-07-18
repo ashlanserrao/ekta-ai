@@ -1,4 +1,5 @@
 import React from "react";
+import { ZoomIn, Accessibility } from "lucide-react";
 
 export default function SettingsView({ highContrast, largeText, setHighContrast, setLargeText }) {
   return (
@@ -11,7 +12,7 @@ export default function SettingsView({ highContrast, largeText, setHighContrast,
       <div className="glass-panel settings-card">
         <div className="settings-row">
           <div>
-            <div className="settings-name">🔍 Large Text</div>
+            <div className="settings-name"><ZoomIn size={16} style={{ verticalAlign: "-3px", marginRight: "0.3rem" }} />Large Text</div>
             <div className="settings-desc">Increase font sizes across the app.</div>
           </div>
           <button
@@ -26,7 +27,7 @@ export default function SettingsView({ highContrast, largeText, setHighContrast,
 
         <div className="settings-row">
           <div>
-            <div className="settings-name">♿ High Contrast</div>
+            <div className="settings-name"><Accessibility size={16} style={{ verticalAlign: "-3px", marginRight: "0.3rem" }} />High Contrast</div>
             <div className="settings-desc">Maximise contrast for low-vision readability.</div>
           </div>
           <button

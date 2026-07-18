@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Zap, WifiOff } from "lucide-react";
 import { useChatStream } from "../../hooks/useChatStream";
-import { API_BASE } from "../../lib/api";
+import { API_BASE, logInteraction } from "../../lib/api";
 
 const getProviderBadge = (provider) => {
   if (provider === "groq") {
-    return <span className="provider-badge groq">⚡ Groq Core</span>;
+    return <span className="provider-badge groq"><Zap size={14} /> Groq Core</span>;
   }
-  return <span className="provider-badge offline">🔌 Offline Mode</span>;
+  return <span className="provider-badge offline"><WifiOff size={14} /> Offline Mode</span>;
 };
 
 // The Staff Decision Support Console chat, decoupled from the dashboard layout.
@@ -33,6 +34,7 @@ export default function StaffChat({ token, onLogout }) {
     setStaffMessages(prev => [...prev, { sender: "user", text: userMsg }]);
     setStaffInput("");
     setStaffChatLoading(true);
+    logInteraction("staff", "chat_message", "ops_chat", { length: userMsg.length });
 
     try {
       const historyPayload = staffMessages.slice(-3).map(m => ({

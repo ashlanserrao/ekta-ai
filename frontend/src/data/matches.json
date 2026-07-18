@@ -8,12 +8,12 @@
     "teamA": {
       "id": "arg",
       "name": "Argentina",
-      "flag": "🇦🇷"
+      "flag": "ARG"
     },
     "teamB": {
       "id": "xt_23",
       "name": "Saudi Arabia",
-      "flag": "🇸🇦"
+      "flag": "KSA"
     },
     "scoreA": 0,
     "scoreB": 3,
@@ -30,12 +30,12 @@
     "teamA": {
       "id": "xt_8",
       "name": "Japan",
-      "flag": "🇯🇵"
+      "flag": "JPN"
     },
     "teamB": {
       "id": "xt_9",
       "name": "Morocco",
-      "flag": "🇲🇦"
+      "flag": "MAR"
     },
     "scoreA": 0,
     "scoreB": 1,
@@ -52,12 +52,12 @@
     "teamA": {
       "id": "xt_2",
       "name": "Netherlands",
-      "flag": "🇳🇱"
+      "flag": "NED"
     },
     "teamB": {
       "id": "xt_17",
       "name": "Australia",
-      "flag": "🇦🇺"
+      "flag": "AUS"
     },
     "scoreA": 1,
     "scoreB": 3,
@@ -74,12 +74,12 @@
     "teamA": {
       "id": "xt_3",
       "name": "Italy",
-      "flag": "🇮🇹"
+      "flag": "ITA"
     },
     "teamB": {
       "id": "xt_16",
       "name": "Nigeria",
-      "flag": "🇳🇬"
+      "flag": "NGA"
     },
     "scoreA": 2,
     "scoreB": 1,
@@ -96,12 +96,12 @@
     "teamA": {
       "id": "esp",
       "name": "Spain",
-      "flag": "🇪🇸"
+      "flag": "ESP"
     },
     "teamB": {
       "id": "xt_20",
       "name": "Costa Rica",
-      "flag": "🇨🇷"
+      "flag": "CRC"
     },
     "scoreA": 3,
     "scoreB": 3,
@@ -121,12 +121,12 @@
     "teamA": {
       "id": "xt_6",
       "name": "Croatia",
-      "flag": "🇭🇷"
+      "flag": "CRO"
     },
     "teamB": {
       "id": "xt_12",
       "name": "Senegal",
-      "flag": "🇸🇳"
+      "flag": "SEN"
     },
     "scoreA": 3,
     "scoreB": 3,
@@ -146,12 +146,12 @@
     "teamA": {
       "id": "eng",
       "name": "England",
-      "flag": "🏴"
+      "flag": "ENG"
     },
     "teamB": {
       "id": "xt_19",
       "name": "Tunisia",
-      "flag": "🇹🇳"
+      "flag": "TUN"
     },
     "scoreA": 1,
     "scoreB": 1,
@@ -171,12 +171,12 @@
     "teamA": {
       "id": "xt_5",
       "name": "Uruguay",
-      "flag": "🇺🇾"
+      "flag": "URU"
     },
     "teamB": {
       "id": "xt_13",
       "name": "Ecuador",
-      "flag": "🇪🇨"
+      "flag": "ECU"
     },
     "scoreA": 3,
     "scoreB": 0,
@@ -193,12 +193,12 @@
     "teamA": {
       "id": "fra",
       "name": "France",
-      "flag": "🇫🇷"
+      "flag": "FRA"
     },
     "teamB": {
       "id": "xt_22",
       "name": "Qatar",
-      "flag": "🇶🇦"
+      "flag": "QAT"
     },
     "scoreA": 1,
     "scoreB": 0,
@@ -215,12 +215,12 @@
     "teamA": {
       "id": "xt_7",
       "name": "Colombia",
-      "flag": "🇨🇴"
+      "flag": "COL"
     },
     "teamB": {
       "id": "xt_10",
       "name": "Switzerland",
-      "flag": "🇨🇭"
+      "flag": "SUI"
     },
     "scoreA": 0,
     "scoreB": 3,
@@ -237,12 +237,12 @@
     "teamA": {
       "id": "xt_1",
       "name": "Portugal",
-      "flag": "🇵🇹"
+      "flag": "POR"
     },
     "teamB": {
       "id": "xt_18",
       "name": "Ghana",
-      "flag": "🇬🇭"
+      "flag": "GHA"
     },
     "scoreA": 0,
     "scoreB": 1,
@@ -259,12 +259,12 @@
     "teamA": {
       "id": "xt_4",
       "name": "Belgium",
-      "flag": "🇧🇪"
+      "flag": "BEL"
     },
     "teamB": {
       "id": "xt_15",
       "name": "Poland",
-      "flag": "🇵🇱"
+      "flag": "POL"
     },
     "scoreA": 2,
     "scoreB": 1,
@@ -281,12 +281,12 @@
     "teamA": {
       "id": "bra",
       "name": "Brazil",
-      "flag": "🇧🇷"
+      "flag": "BRA"
     },
     "teamB": {
       "id": "xt_21",
       "name": "Panama",
-      "flag": "🇵🇦"
+      "flag": "PAN"
     },
     "scoreA": 3,
     "scoreB": 0,
@@ -303,12 +303,12 @@
     "teamA": {
       "id": "mex",
       "name": "Mexico",
-      "flag": "🇲🇽"
+      "flag": "MEX"
     },
     "teamB": {
       "id": "xt_11",
       "name": "Denmark",
-      "flag": "🇩🇰"
+      "flag": "DEN"
     },
     "scoreA": 0,
     "scoreB": 2,
@@ -325,12 +325,12 @@
     "teamA": {
       "id": "xt_0",
       "name": "Germany",
-      "flag": "🇩🇪"
+      "flag": "GER"
     },
     "teamB": {
       "id": "can",
       "name": "Canada",
-      "flag": "🇨🇦"
+      "flag": "CAN"
     },
     "scoreA": 3,
     "scoreB": 3,
@@ -350,12 +350,12 @@
     "teamA": {
       "id": "usa",
       "name": "USA",
-      "flag": "🇺🇸"
+      "flag": "USA"
     },
     "teamB": {
       "id": "xt_14",
       "name": "South Korea",
-      "flag": "🇰🇷"
+      "flag": "KOR"
     },
     "scoreA": 3,
     "scoreB": 1,
@@ -372,12 +372,12 @@
     "teamA": {
       "id": "xt_23",
       "name": "Saudi Arabia",
-      "flag": "🇸🇦"
+      "flag": "KSA"
     },
     "teamB": {
       "id": "xt_9",
       "name": "Morocco",
-      "flag": "🇲🇦"
+      "flag": "MAR"
     },
     "scoreA": 2,
     "scoreB": 0,
@@ -394,12 +394,12 @@
     "teamA": {
       "id": "xt_17",
       "name": "Australia",
-      "flag": "🇦🇺"
+      "flag": "AUS"
     },
     "teamB": {
       "id": "xt_3",
       "name": "Italy",
-      "flag": "🇮🇹"
+      "flag": "ITA"
     },
     "scoreA": 0,
     "scoreB": 2,
@@ -416,12 +416,12 @@
     "teamA": {
       "id": "esp",
       "name": "Spain",
-      "flag": "🇪🇸"
+      "flag": "ESP"
     },
     "teamB": {
       "id": "xt_12",
       "name": "Senegal",
-      "flag": "🇸🇳"
+      "flag": "SEN"
     },
     "scoreA": 3,
     "scoreB": 0,
@@ -438,12 +438,12 @@
     "teamA": {
       "id": "eng",
       "name": "England",
-      "flag": "🏴"
+      "flag": "ENG"
     },
     "teamB": {
       "id": "xt_5",
       "name": "Uruguay",
-      "flag": "🇺🇾"
+      "flag": "URU"
     },
     "scoreA": 0,
     "scoreB": 1,
@@ -460,12 +460,12 @@
     "teamA": {
       "id": "fra",
       "name": "France",
-      "flag": "🇫🇷"
+      "flag": "FRA"
     },
     "teamB": {
       "id": "xt_10",
       "name": "Switzerland",
-      "flag": "🇨🇭"
+      "flag": "SUI"
     },
     "scoreA": 0,
     "scoreB": 3,
@@ -482,12 +482,12 @@
     "teamA": {
       "id": "xt_18",
       "name": "Ghana",
-      "flag": "🇬🇭"
+      "flag": "GHA"
     },
     "teamB": {
       "id": "xt_4",
       "name": "Belgium",
-      "flag": "🇧🇪"
+      "flag": "BEL"
     },
     "scoreA": 2,
     "scoreB": 3,
@@ -504,12 +504,12 @@
     "teamA": {
       "id": "bra",
       "name": "Brazil",
-      "flag": "🇧🇷"
+      "flag": "BRA"
     },
     "teamB": {
       "id": "xt_11",
       "name": "Denmark",
-      "flag": "🇩🇰"
+      "flag": "DEN"
     },
     "scoreA": 0,
     "scoreB": 1,
@@ -526,12 +526,12 @@
     "teamA": {
       "id": "xt_0",
       "name": "Germany",
-      "flag": "🇩🇪"
+      "flag": "GER"
     },
     "teamB": {
       "id": "usa",
       "name": "USA",
-      "flag": "🇺🇸"
+      "flag": "USA"
     },
     "scoreA": 2,
     "scoreB": 2,
@@ -551,12 +551,12 @@
     "teamA": {
       "id": "xt_23",
       "name": "Saudi Arabia",
-      "flag": "🇸🇦"
+      "flag": "KSA"
     },
     "teamB": {
       "id": "xt_3",
       "name": "Italy",
-      "flag": "🇮🇹"
+      "flag": "ITA"
     },
     "scoreA": 0,
     "scoreB": 4,
@@ -573,12 +573,12 @@
     "teamA": {
       "id": "esp",
       "name": "Spain",
-      "flag": "🇪🇸"
+      "flag": "ESP"
     },
     "teamB": {
       "id": "xt_5",
       "name": "Uruguay",
-      "flag": "🇺🇾"
+      "flag": "URU"
     },
     "scoreA": 3,
     "scoreB": 4,
@@ -595,12 +595,12 @@
     "teamA": {
       "id": "xt_10",
       "name": "Switzerland",
-      "flag": "🇨🇭"
+      "flag": "SUI"
     },
     "teamB": {
       "id": "xt_4",
       "name": "Belgium",
-      "flag": "🇧🇪"
+      "flag": "BEL"
     },
     "scoreA": 1,
     "scoreB": 2,
@@ -617,12 +617,12 @@
     "teamA": {
       "id": "xt_11",
       "name": "Denmark",
-      "flag": "🇩🇰"
+      "flag": "DEN"
     },
     "teamB": {
       "id": "xt_0",
       "name": "Germany",
-      "flag": "🇩🇪"
+      "flag": "GER"
     },
     "scoreA": 0,
     "scoreB": 1,
@@ -639,12 +639,12 @@
     "teamA": {
       "id": "xt_3",
       "name": "Italy",
-      "flag": "🇮🇹"
+      "flag": "ITA"
     },
     "teamB": {
       "id": "xt_5",
       "name": "Uruguay",
-      "flag": "🇺🇾"
+      "flag": "URU"
     },
     "scoreA": null,
     "scoreB": null,
@@ -661,7 +661,7 @@
     "teamA": {
       "id": "xt_4",
       "name": "Belgium",
-      "flag": "🇧🇪"
+      "flag": "BEL"
     },
     "teamB": null,
     "scoreA": null,

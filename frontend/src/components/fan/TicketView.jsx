@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { MapPin } from "lucide-react";
 
 export default function TicketView({ profile }) {
   const p = profile || {};
@@ -52,7 +53,7 @@ export default function TicketView({ profile }) {
             <span className="ticket-datetime">Sun, Jul 19 2026 · 15:00</span>
           </div>
 
-          <div className="ticket-venue">📍 MetLife Stadium, New Jersey</div>
+          <div className="ticket-venue"><MapPin size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />MetLife Stadium, New Jersey</div>
 
           <div className="ticket-holder">
             <div>

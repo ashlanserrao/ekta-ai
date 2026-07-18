@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { MapPin } from "lucide-react";
 import MATCHES from "../../../data/matches.json";
 import MatchDetailModal from "./MatchDetailModal";
 import { roundLabel, formatScore } from "./scheduleHelpers";
@@ -38,7 +39,7 @@ export default function MatchesTab() {
             className={`stats-tab ${subTab === t.key ? "active" : ""}`}
             onClick={() => setSubTab(t.key)}
           >
-            {t.label}{t.key === "ongoing" && hasLive ? " 🔴" : ""}
+            {t.label}{t.key === "ongoing" && hasLive ? <span className="live-dot" aria-hidden="true" /> : ""}
           </button>
         ))}
       </div>
@@ -60,7 +61,7 @@ export default function MatchesTab() {
               </div>
               <div className="schedule-meta">
                 <span className={`schedule-stage ${m.round === "F" ? "final" : ""}`}>{roundLabel(m.round)}</span>
-                <span className="schedule-venue">📍 {m.venue}</span>
+                <span className="schedule-venue"><MapPin size={13} style={{ verticalAlign: "-2px", marginRight: "0.25rem" }} />{m.venue}</span>
               </div>
             </div>
           ))}

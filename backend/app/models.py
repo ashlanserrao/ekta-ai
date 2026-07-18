@@ -54,3 +54,24 @@ class PlainLanguageAlert(BaseModel):
     message: str
     recommended_action: str
 
+class InteractionEventCreate(BaseModel):
+    session_id: str = Field(..., min_length=1, max_length=64, description="Random per-browser-session id, not tied to any personal identifier")
+    role: Literal["fan", "staff"]
+    event_type: Literal["login", "logout", "chat_message", "page_view"]
+    view: Optional[str] = Field(None, max_length=64, description="Screen/view name, e.g. 'stats', 'schedule'")
+    meta: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Small non-sensitive counters only (e.g. message length, language) - never raw text or PII")
+
+class InteractionEvent(BaseModel):
+    id: int
+    ts: str
+    session_id: str
+    role: str
+    event_type: str
+    view: Optional[str] = None
+    meta: Dict[str, Any] = Field(default_factory=dict)
+
+class InteractionSummary(BaseModel):
+    events: List[InteractionEvent]
+    counts_by_type: Dict[str, int]
+    total: int
+

@@ -1,4 +1,5 @@
 import React from "react";
+import { X } from "lucide-react";
 import PLAYERS from "../../../data/players.json";
 import TEAMS from "../../../data/teams.json";
 import RadarChartView from "./RadarChartView";
@@ -24,7 +25,7 @@ export default function PlayerDetailModal({ playerId, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={`${player.name} player card`}>
       <div className="modal-card glass-panel fifa-card" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
 
         <div className="fifa-card-header">
           <div className="profile-avatar">{initials(player.name)}</div>
@@ -55,7 +56,7 @@ export default function PlayerDetailModal({ playerId, onClose }) {
           <div className="profile-row"><span className="profile-key">Interceptions</span><span className="profile-val">{s.interceptions}</span></div>
           <div className="profile-row"><span className="profile-key">Duels Won</span><span className="profile-val">{s.duelsWon}</span></div>
           <div className="profile-row"><span className="profile-key">Fouls (committed/suffered)</span><span className="profile-val">{s.foulsCommitted} / {s.foulsSuffered}</span></div>
-          <div className="profile-row"><span className="profile-key">Cards</span><span className="profile-val">🟨 {s.yellowCards} · 🟥 {s.redCards}</span></div>
+          <div className="profile-row"><span className="profile-key">Cards</span><span className="profile-val"><span className="card-chip yellow" /> {s.yellowCards} · <span className="card-chip red" /> {s.redCards}</span></div>
           <div className="profile-row"><span className="profile-key">Distance Covered</span><span className="profile-val">{s.distanceCovered} km</span></div>
           <div className="profile-row"><span className="profile-key">Avg Match Rating</span><span className="profile-val">{s.avgMatchRating}</span></div>
         </div>

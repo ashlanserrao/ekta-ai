@@ -1,15 +1,19 @@
 import React, { useState } from "react";
+import { Brain, Users, Map, AlertTriangle, Settings, Menu, LogOut, ZoomIn, Accessibility, History } from "lucide-react";
+import { logInteraction } from "../../lib/api";
 import OperationsCopilotView from "./OperationsCopilotView";
 import LiveCrowdView from "./LiveCrowdView";
 import StadiumMapView from "./StadiumMapView";
 import LiveAlertsView from "./LiveAlertsView";
+import DataHistoryView from "./DataHistoryView";
 import StaffChatWidget from "./StaffChatWidget";
 
 const NAV = [
-  { key: "copilot", icon: "🧠", label: "Operations Copilot" },
-  { key: "crowd", icon: "👥", label: "Live Crowd" },
-  { key: "map", icon: "🗺️", label: "Stadium Live Map" },
-  { key: "alerts", icon: "🚨", label: "Live Alerts" },
+  { key: "copilot", icon: Brain, label: "Operations Copilot" },
+  { key: "crowd", icon: Users, label: "Live Crowd" },
+  { key: "map", icon: Map, label: "Stadium Live Map" },
+  { key: "alerts", icon: AlertTriangle, label: "Live Alerts" },
+  { key: "history", icon: History, label: "Data History" },
 ];
 
 export default function StaffApp({ zones, alerts, gates, token, onLogout, highContrast, largeText, setHighContrast, setLargeText }) {
@@ -17,13 +21,14 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const go = (key) => { setActiveView(key); setMobileOpen(false); };
+  const go = (key) => { setActiveView(key); setMobileOpen(false); logInteraction("staff", "page_view", key); };
 
   const renderView = () => {
     switch (activeView) {
       case "crowd": return <LiveCrowdView zones={zones} />;
       case "map": return <StadiumMapView gates={gates} zones={zones} />;
       case "alerts": return <LiveAlertsView alerts={alerts} />;
+      case "history": return <DataHistoryView token={token} onLogout={onLogout} />;
       case "copilot":
       default: return <OperationsCopilotView token={token} onLogout={onLogout} />;
     }
@@ -31,7 +36,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
 
   return (
     <div className="fan-shell">
-      <button className="sidebar-toggle" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">☰</button>
+      <button className="sidebar-toggle" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu"><Menu size={20} /></button>
 
       <aside className={`sidebar ${mobileOpen ? "open" : ""}`}>
         <div className="sidebar-brand" onClick={() => go("copilot")} style={{ cursor: "pointer" }}>
@@ -50,7 +55,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
               onClick={() => go(item.key)}
               aria-current={activeView === item.key ? "page" : undefined}
             >
-              <span className="sidebar-icon">{item.icon}</span>
+              <span className="sidebar-icon"><item.icon size={18} /></span>
               <span>{item.label}</span>
             </button>
           ))}
@@ -62,7 +67,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
             onClick={() => setSettingsOpen((o) => !o)}
             aria-expanded={settingsOpen}
           >
-            <span className="sidebar-icon">⚙️</span>
+            <span className="sidebar-icon"><Settings size={18} /></span>
             <span>Settings</span>
           </button>
 
@@ -81,7 +86,8 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
                 aria-label={largeText ? "Disable large text size" : "Enable large text size"}
                 style={{ width: "100%", justifyContent: "flex-start", fontSize: "0.9rem", border: largeText ? "2px solid var(--accent-color)" : "1px solid var(--border-color)" }}
               >
-                🔍 {largeText ? "Normal Text" : "Large Text"}
+                <ZoomIn size={16} style={{ marginRight: "0.4rem", verticalAlign: "-3px" }} />
+                {largeText ? "Normal Text" : "Large Text"}
               </button>
               <button
                 className="btn-secondary"
@@ -89,14 +95,15 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
                 aria-label={highContrast ? "Disable high contrast mode" : "Enable high contrast mode"}
                 style={{ width: "100%", justifyContent: "flex-start", fontSize: "0.9rem", border: highContrast ? "2px solid #ffff00" : "1px solid var(--border-color)" }}
               >
-                ♿ High Contrast
+                <Accessibility size={16} style={{ marginRight: "0.4rem", verticalAlign: "-3px" }} />
+                High Contrast
               </button>
             </div>
           )}
         </div>
 
         <button className="sidebar-item logout" onClick={onLogout}>
-          <span className="sidebar-icon">🚪</span>
+          <span className="sidebar-icon"><LogOut size={18} /></span>
           <span>Log Out</span>
         </button>
       </aside>

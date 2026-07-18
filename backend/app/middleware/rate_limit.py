@@ -21,3 +21,4 @@ class IPBasedRateLimiter:
 
 chat_limiter = IPBasedRateLimiter(limit=settings.RATE_LIMIT_LIMIT, window=settings.RATE_LIMIT_WINDOW)
 staff_limiter = IPBasedRateLimiter(limit=30, window=10)
+interaction_limiter = IPBasedRateLimiter(limit=60, window=10)

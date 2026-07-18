@@ -124,7 +124,7 @@ header {
 }
 
 .logo-badge {
-  background: linear-gradient(135deg, var(--accent-color), var(--accent-secondary));
+  background: var(--accent-color);
   color: white;
   font-weight: 800;
   padding: 0.35rem 0.75rem;
@@ -538,7 +538,9 @@ body.large-text .map-legend, body.large-text .info-panel, body.large-text p {
   padding: 0.15rem 0.4rem;
   border-radius: 10px;
   font-weight: 600;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 .provider-badge.groq {
   background: rgba(245, 158, 11, 0.1);
@@ -639,12 +641,39 @@ body.large-text .map-legend, body.large-text .info-panel, body.large-text p {
   align-items: center;
 }
 
-.select-language {
+/* --- Styled dropdowns / select boxes --- */
+.select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.select-chevron {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
-  padding: 0.3rem;
-  border-radius: 6px;
+  border-radius: 8px;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color var(--transition-speed) ease, background var(--transition-speed) ease;
+}
+.form-select:hover { border-color: var(--border-active); }
+.form-select:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 1px; }
+.form-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.select-language {
+  padding: 0.3rem 1.9rem 0.3rem 0.5rem;
 }
 
 .voice-toggle-btn {
@@ -742,7 +771,7 @@ body.large-text .map-legend, body.large-text .info-panel, body.large-text p {
 /* --- Operations Copilot Panel --- */
 .copilot-panel {
   border: 1px solid var(--border-active);
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.10), var(--bg-secondary) 60%);
+  background: var(--bg-secondary);
 }
 .copilot-header {
   display: flex;

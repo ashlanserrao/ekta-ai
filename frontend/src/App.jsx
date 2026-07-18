@@ -2,7 +2,10 @@ import React, { useState, useEffect } from "react";
 import Landing from "./components/Landing";
 import FanApp from "./components/fan/FanApp";
 import StaffApp from "./components/staff/StaffApp";
-import { API_BASE } from "./lib/api";
+import { API_BASE, logInteraction } from "./lib/api";
+import { useIdleTimer } from "./hooks/useIdleTimer";
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 const DEFAULT_FAN_PROFILE = {
   fullName: "Guest Fan",
@@ -16,11 +19,30 @@ const DEFAULT_FAN_PROFILE = {
   accessibility: false,
 };
 
+// A restored "app" screen is only trusted if the matching credential actually
+// survived in storage — otherwise a stray sessionStorage value could strand the
+// user on a blank workspace with no token/profile behind it.
+const restoreSession = () => {
+  const savedScreen = sessionStorage.getItem("app_screen");
+  const savedViewMode = sessionStorage.getItem("app_view_mode") || "fan";
+  if (savedScreen !== "app") return { screen: "landing", viewMode: "fan" };
+
+  if (savedViewMode === "staff") {
+    return sessionStorage.getItem("staff_token")
+      ? { screen: "app", viewMode: "staff" }
+      : { screen: "landing", viewMode: "fan" };
+  }
+  return localStorage.getItem("ekta_fan_profile")
+    ? { screen: "app", viewMode: "fan" }
+    : { screen: "landing", viewMode: "fan" };
+};
+
 export default function App() {
+  const restored = restoreSession();
   // Top-level screen: 'landing' (marketing + auth) or 'app' (fan/staff workspace)
-  const [screen, setScreen] = useState("landing");
+  const [screen, setScreen] = useState(restored.screen);
   // Which workspace once in the app: 'fan' or 'staff'
-  const [viewMode, setViewMode] = useState("fan");
+  const [viewMode, setViewMode] = useState(restored.viewMode);
 
   // Accessibility state
   const [highContrast, setHighContrast] = useState(false);
@@ -34,8 +56,18 @@ export default function App() {
   // JWT Token state (loaded strictly from sessionStorage)
   const [token, setToken] = useState(() => sessionStorage.getItem("staff_token") || "");
 
-  // Fan profile (from onboarding, localStorage, or a demo default)
-  const [fanProfile, setFanProfile] = useState(null);
+  // Fan profile (from onboarding, localStorage, or a demo default). Lazily restored
+  // on mount too, since a refresh re-enters "app" without going through enterApp.
+  const [fanProfile, setFanProfile] = useState(() => {
+    if (restored.screen !== "app" || restored.viewMode !== "fan") return null;
+    try { return JSON.parse(localStorage.getItem("ekta_fan_profile") || "null") || DEFAULT_FAN_PROFILE; } catch { return DEFAULT_FAN_PROFILE; }
+  });
+
+  // Persist screen/viewMode so a refresh restores the workspace instead of bouncing to landing.
+  useEffect(() => {
+    sessionStorage.setItem("app_screen", screen);
+    sessionStorage.setItem("app_view_mode", viewMode);
+  }, [screen, viewMode]);
 
   const enterApp = ({ mode, token: newToken, profile }) => {
     if (newToken) {
@@ -51,14 +83,21 @@ export default function App() {
     }
     setViewMode(mode);
     setScreen("app");
+    logInteraction(mode, "login", null);
   };
 
   const handleLogout = () => {
+    if (screen === "app") logInteraction(viewMode, "logout", null);
     sessionStorage.removeItem("staff_token");
+    sessionStorage.removeItem("app_screen");
+    sessionStorage.removeItem("app_view_mode");
+    sessionStorage.removeItem("app_last_active");
     setToken("");
     setViewMode("fan");
     setScreen("landing");
   };
+
+  useIdleTimer(IDLE_TIMEOUT_MS, handleLogout, screen === "app");
 
   // 1. Connect to SSE stream for gates & zones (public telemetry)
   useEffect(() => {

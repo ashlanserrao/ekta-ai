@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Trophy } from "lucide-react";
 import MATCHES from "../../../data/matches.json";
 import MatchDetailModal from "./MatchDetailModal";
 import { ROUND_ORDER, roundLabel } from "./scheduleHelpers";
@@ -56,7 +57,7 @@ export default function BracketTab() {
           <div className="bracket-round bracket-champion-round">
             <h4 className="bracket-round-title">Champion</h4>
             <div className="bracket-champion-card">
-              <span>🏆</span>
+              <Trophy size={20} color="#f59e0b" />
               <span className="bracket-team-name">{champion.flag} {champion.name}</span>
             </div>
           </div>

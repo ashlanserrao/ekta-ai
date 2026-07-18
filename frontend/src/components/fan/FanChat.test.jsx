@@ -18,7 +18,7 @@ describe("FanChat", () => {
     expect(screen.getByText(/Welcome to the World Cup 2026/i)).toBeInTheDocument();
     expect(screen.getByText(/Wheelchair route from Gate 2/i)).toBeInTheDocument();
     expect(screen.getByText(/accessible restrooms/i)).toBeInTheDocument();
-    expect(screen.getByText(/halal food/i)).toBeInTheDocument();
+    expect(screen.getByText(/Gate 4 to Gate 1/i)).toBeInTheDocument();
   });
 
   it("localizes prompt chips and placeholder to French", () => {
@@ -28,7 +28,7 @@ describe("FanChat", () => {
     expect(screen.getByPlaceholderText(/Écrivez un message/i)).toBeInTheDocument();
   });
 
-  it("sends the chip text (emoji stripped) and hides the chips after sending", async () => {
+  it("sends the chip text and hides the chips after sending", async () => {
     render(<FanChat onRoute={() => {}} />);
     fireEvent.click(screen.getByText(/Wheelchair route from Gate 2/i));
 

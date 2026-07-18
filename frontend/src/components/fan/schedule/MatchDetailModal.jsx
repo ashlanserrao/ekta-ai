@@ -1,4 +1,5 @@
 import React from "react";
+import { X, MapPin } from "lucide-react";
 import { roundLabel, teamLabel, formatScore, statusText } from "./scheduleHelpers";
 
 export default function MatchDetailModal({ match, onClose }) {
@@ -14,7 +15,7 @@ export default function MatchDetailModal({ match, onClose }) {
       aria-label={`${teamLabel(match.teamA)} vs ${teamLabel(match.teamB)} match detail`}
     >
       <div className="modal-card glass-panel match-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
 
         <p className="schedule-stage match-modal-round">{roundLabel(match.round)}</p>
 
@@ -30,7 +31,7 @@ export default function MatchDetailModal({ match, onClose }) {
         <div className="profile-details">
           <div className="profile-row"><span className="profile-key">Date</span><span className="profile-val">{match.date}</span></div>
           <div className="profile-row"><span className="profile-key">Time</span><span className="profile-val">{match.time}</span></div>
-          <div className="profile-row"><span className="profile-key">Venue</span><span className="profile-val">📍 {match.venue}</span></div>
+          <div className="profile-row"><span className="profile-key">Venue</span><span className="profile-val"><MapPin size={13} style={{ verticalAlign: "-2px", marginRight: "0.25rem" }} />{match.venue}</span></div>
           <div className="profile-row"><span className="profile-key">Status</span><span className="profile-val">{statusText(match.status)}</span></div>
         </div>
       </div>

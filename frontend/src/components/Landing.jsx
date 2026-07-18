@@ -1,13 +1,14 @@
 import React, { useState } from "react";
+import { Brain, Map, BarChart3, Globe } from "lucide-react";
 import Stadium3D from "./Stadium3D";
 import AuthModal from "./AuthModal";
 import OnboardingWizard from "./OnboardingWizard";
 
 const CAPABILITIES = [
-  { icon: "🧠", title: "Operations Copilot", desc: "Forecasts congestion minutes ahead and recommends actions before bottlenecks form." },
-  { icon: "🗺️", title: "Smart Navigation", desc: "Step-free, accessible routing from any gate to any seat, live on an interactive map." },
-  { icon: "📊", title: "Live Crowd Intelligence", desc: "A real-time digital twin of every zone and gate, with automatic plain-language alerts." },
-  { icon: "🌐", title: "Multilingual Assistance", desc: "Voice and chat help in English, Spanish, and French for every fan." },
+  { icon: Brain, title: "Operations Copilot", desc: "Forecasts congestion minutes ahead and recommends actions before bottlenecks form.", span: "bento-featured" },
+  { icon: Map, title: "Smart Navigation", desc: "Step-free, accessible routing from any gate to any seat, live on an interactive map." },
+  { icon: BarChart3, title: "Live Crowd Intelligence", desc: "A real-time digital twin of every zone and gate, with automatic plain-language alerts." },
+  { icon: Globe, title: "Multilingual Assistance", desc: "Voice and chat help in English, Spanish, and French for every fan.", span: "bento-wide" },
 ];
 
 const STEPS = [
@@ -56,10 +57,10 @@ export default function Landing({ onAuthenticated }) {
       <section className="landing-section" aria-label="Platform capabilities">
         <h3 className="section-title">Platform Capabilities</h3>
         <p className="section-sub">Everything a venue needs to run a world-class match day.</p>
-        <div className="card-row">
+        <div className="card-row bento-grid">
           {CAPABILITIES.map((c) => (
-            <div key={c.title} className="feature-card glass-panel">
-              <div className="feature-icon">{c.icon}</div>
+            <div key={c.title} className={`feature-card glass-panel ${c.span || ""}`}>
+              <div className="feature-icon"><c.icon size={c.span === "bento-featured" ? 30 : 22} /></div>
               <h4 className="feature-title">{c.title}</h4>
               <p className="feature-desc">{c.desc}</p>
             </div>

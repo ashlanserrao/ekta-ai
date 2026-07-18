@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { Zap, WifiOff, Brain, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { API_BASE } from "../../lib/api";
 
 const getProviderBadge = (provider) => {
   if (provider === "groq") {
-    return <span className="provider-badge groq">⚡ Groq Core</span>;
+    return <span className="provider-badge groq"><Zap size={14} /> Groq Core</span>;
   }
-  return <span className="provider-badge offline">🔌 Offline Mode</span>;
+  return <span className="provider-badge offline"><WifiOff size={14} /> Offline Mode</span>;
 };
 
 export default function OperationsCopilotView({ token, onLogout }) {
@@ -41,7 +42,8 @@ export default function OperationsCopilotView({ token, onLogout }) {
       <div className="glass-panel copilot-panel padding-large">
         <div className="copilot-header">
           <h2>
-            🧠 Operations Copilot
+            <Brain size={20} style={{ verticalAlign: "-4px", marginRight: "0.4rem" }} />
+            Operations Copilot
             {copilot && getProviderBadge(copilot.provider)}
           </h2>
           <span className="copilot-horizon">
@@ -59,7 +61,7 @@ export default function OperationsCopilotView({ token, onLogout }) {
             {copilot.risks && copilot.risks.length > 0 && (
               <div className="copilot-forecast">
                 {copilot.risks.map((r) => {
-                  const trendIcon = r.trend === "rising" ? "▲" : r.trend === "falling" ? "▼" : "●";
+                  const TrendIcon = r.trend === "rising" ? TrendingUp : r.trend === "falling" ? TrendingDown : Minus;
                   const trendClass = r.trend === "rising" ? "high" : r.trend === "falling" ? "low" : "medium";
                   return (
                     <div key={r.zone_id} className="copilot-forecast-row">
@@ -72,7 +74,7 @@ export default function OperationsCopilotView({ token, onLogout }) {
                         </span>
                       </span>
                       <span className={`copilot-trend ${trendClass}`}>
-                        {trendIcon} {r.trend}
+                        <TrendIcon size={14} style={{ verticalAlign: "-2px" }} /> {r.trend}
                         {r.eta_minutes != null && r.trend === "rising" ? ` · ~${r.eta_minutes}m to critical` : ""}
                       </span>
                     </div>
@@ -93,7 +95,7 @@ export default function OperationsCopilotView({ token, onLogout }) {
                 ))}
               </div>
             ) : (
-              <div className="copilot-nominal">✅ No interventions required — all zones nominal.</div>
+              <div className="copilot-nominal"><CheckCircle2 size={16} style={{ verticalAlign: "-3px", marginRight: "0.3rem" }} />No interventions required — all zones nominal.</div>
             )}
           </>
         ) : (

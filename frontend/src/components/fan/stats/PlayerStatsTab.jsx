@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { Trophy, Target, Shield, Star, Users, ChevronDown } from "lucide-react";
 import PLAYERS from "../../../data/players.json";
 import TEAMS from "../../../data/teams.json";
 import PlayerDetailModal from "./PlayerDetailModal";
@@ -18,17 +19,17 @@ const COLUMNS = [
 ];
 
 const LEADERBOARDS = [
-  { title: "Top Scorers", icon: "🏆", metric: (p) => p.tournamentStats.goals, unit: "" },
-  { title: "Top Assists", icon: "🎯", metric: (p) => p.tournamentStats.assists, unit: "" },
-  { title: "Most Tackles", icon: "🛡️", metric: (p) => p.tournamentStats.tackles, unit: "" },
-  { title: "Highest Rated", icon: "⭐", metric: (p) => p.overallRating, unit: "" },
+  { title: "Top Scorers", icon: Trophy, metric: (p) => p.tournamentStats.goals, unit: "" },
+  { title: "Top Assists", icon: Target, metric: (p) => p.tournamentStats.assists, unit: "" },
+  { title: "Most Tackles", icon: Shield, metric: (p) => p.tournamentStats.tackles, unit: "" },
+  { title: "Highest Rated", icon: Star, metric: (p) => p.overallRating, unit: "" },
 ];
 
-function Leaderboard({ title, icon, metric, unit, onSelectPlayer }) {
+function Leaderboard({ title, icon: Icon, metric, unit, onSelectPlayer }) {
   const top = useMemo(() => [...PLAYERS].sort((a, b) => metric(b) - metric(a)).slice(0, 5), [metric]);
   return (
     <div className="glass-panel stats-panel">
-      <h3 className="stats-panel-title">{icon} {title}</h3>
+      <h3 className="stats-panel-title"><Icon size={17} style={{ verticalAlign: "-3px", marginRight: "0.35rem" }} />{title}</h3>
       {top.map((p, i) => (
         <div key={p.id} className="leaderboard-row clickable-row" onClick={() => onSelectPlayer(p.id)}>
           <span className="rank">{i + 1}</span>
@@ -78,16 +79,22 @@ export default function PlayerStatsTab() {
       </div>
 
       <div className="glass-panel stats-panel">
-        <h3 className="stats-panel-title">👥 All Players</h3>
+        <h3 className="stats-panel-title"><Users size={17} style={{ verticalAlign: "-3px", marginRight: "0.35rem" }} />All Players</h3>
         <div className="stats-filter-bar">
-          <select className="select-language" aria-label="Filter by team" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
-            <option value="all">All Teams</option>
-            {TEAMS.map((t) => <option key={t.id} value={t.id}>{t.flag} {t.name}</option>)}
-          </select>
-          <select className="select-language" aria-label="Filter by position" value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)}>
-            <option value="all">All Positions</option>
-            {POSITIONS.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
-          </select>
+          <span className="select-wrapper">
+            <select className="form-select select-language" aria-label="Filter by team" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+              <option value="all">All Teams</option>
+              {TEAMS.map((t) => <option key={t.id} value={t.id}>{t.flag} {t.name}</option>)}
+            </select>
+            <ChevronDown size={16} className="select-chevron" aria-hidden="true" />
+          </span>
+          <span className="select-wrapper">
+            <select className="form-select select-language" aria-label="Filter by position" value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)}>
+              <option value="all">All Positions</option>
+              {POSITIONS.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+            </select>
+            <ChevronDown size={16} className="select-chevron" aria-hidden="true" />
+          </span>
         </div>
 
         {rows.length === 0 ? (

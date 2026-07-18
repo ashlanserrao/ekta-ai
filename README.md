@@ -71,16 +71,17 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 ### Components
 
 1. **Vite/React Frontend**:
-   - **Landing & Auth**: Marketing landing page with feature highlights and a guided onboarding wizard; entry is gated by a demo `test`/`test` login — the fan side needs no backend account, while the staff side exchanges the passcode for a real signed JWT via the staff-auth endpoint.
-   - **Fan Portal**: Sidebar workspace with a Live Stadium Map (SSE-fed gate/zone status plus accessible route rendering), a Stats view (player and team stats with radar-chart comparisons), My Ticket, Match Schedule (fixtures and knockout bracket), Profile, and Settings (accessibility toggles) — plus a floating multilingual chat widget with voice input/output.
-   - **Staff Portal**: Sidebar workspace with Live Crowd View, Live Alerts, the Operations Copilot panel, a Stadium Map view, and a dedicated Staff Chat, all behind passcode-gated JWT auth.
+   - **Landing & Auth**: A bento-grid marketing landing page (solid-color icon tiles, subtle glassmorphism via a shared `.glass-panel` treatment, [Lucide](https://lucide.dev) icons throughout — no emoji) with a guided, multi-step onboarding wizard whose in-progress draft persists to `sessionStorage`; entry is gated by a demo `test`/`test` login — the fan side needs no backend account, while the staff side exchanges the passcode for a real signed JWT via the staff-auth endpoint.
+   - **Fan Portal**: Sidebar workspace with a Live Stadium Map (SSE-fed gate/zone status plus accessible route rendering), a Stats view (player and team stats with radar-chart comparisons), My Ticket, Match Schedule (fixtures and knockout bracket), Profile (incl. dietary preference), and Settings (accessibility toggles) — plus a floating multilingual chat widget with voice input/output.
+   - **Staff Portal**: Sidebar workspace with Live Crowd View, Live Alerts, the Operations Copilot panel, a Stadium Map view, a Data History view (see below), and a dedicated Staff Chat, all behind passcode-gated JWT auth.
+   - **Session persistence**: the active workspace (fan/staff) survives a page refresh via `sessionStorage`, and an idle timer automatically logs the user out after 30 minutes of inactivity.
 
 2. **FastAPI REST API**:
    - Clean endpoints for real-time status feeds, alerts, and LLM queries, plus a Server-Sent Events stream (`GET /api/v1/stadium/stream`) that pushes gate/zone updates to the frontend; fan and staff chat can also stream token-by-token over SSE.
    - Implements input sanitization and token/IP rate limiting.
    
 3. **SQLite Digital Twin & Simulator**:
-   - Holds state data for stadium gates, zones, and the `nodes`/`edges` routing graph.
+   - Holds state data for stadium gates, zones, and the `nodes`/`edges` routing graph, plus an `interaction_events` table (see **Data Collection & Privacy** below).
    - Run by a background loop that evolves crowd levels via a momentum model to mimic live IoT sensor telemetry, recording per-zone history for the Copilot's forecasts.
 
 4. **Dijkstra Routing Graph (routing.py)**:
@@ -99,11 +100,21 @@ The design follows one principle: **the LLM orchestrates, the digital twin is th
 
 ---
 
+## Data Collection & Privacy
+
+The Staff Portal includes a **Data History** view (`GET /api/v1/interactions`, staff-JWT-gated) that surfaces exactly what interaction data the app collects, as a transparency/demo feature rather than a hidden analytics pipe:
+
+- Each event is a row in the `interaction_events` SQLite table: a **random per-browser-session id** (not tied to any name, email, or login), a coarse `event_type` (`login`, `logout`, `chat_message`, `page_view`), the `view`/screen name, and a small `meta` JSON blob (e.g. message character count, selected language).
+- **No raw chat message text, names, emails, or other personal identifiers are ever stored.** Logging is fire-and-forget from the frontend (`logInteraction()` in `frontend/src/lib/api.js`) and never blocks or fails the user-facing action it's attached to.
+- The Data History tab renders these events plus per-type counts directly from the table, so the claim above is independently checkable rather than just asserted.
+
+---
+
 ## Non-Functional Qualities
 
-- **Security**: Tightened CORS configurations restricting origins, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. The Staff Portal is secured with passcode-gated JWT authentication (4 hours expiration, token stored in sessionStorage) and a higher burst rate limit of 30 requests per 10 seconds per IP.
+- **Security**: Tightened CORS configurations restricting origins, strict Pydantic inputs validation, sanitizes HTML to prevent injections, rate-limits fan chat endpoints (5 requests per 10 seconds per IP), and reads API keys strictly via environment variables. The Staff Portal is secured with passcode-gated JWT authentication (4 hours expiration, token stored in sessionStorage) and a higher burst rate limit of 30 requests per 10 seconds per IP. The frontend additionally enforces its own 30-minute idle-timeout auto-logout independent of the JWT's own expiry.
 - **Accessibility**: Built with semantic HTML (headers, buttons, main, labels), high-contrast accessibility mode, text size optimization, keyboard navigation support, and voice recognition/synthesis.
-- **Testing**: Backend unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, multilingual (French) routing, and the Operations Copilot (forecast + endpoint); frontend component tests (Vitest + React Testing Library) for the map, fan chat/prompt-chips, and staff Copilot panel; plus an automated eval script verifying 15 bilingual/tool-calling prompts. CI runs the full suite on every push.
+- **Testing**: Backend unit tests for API, routing graph, simulator, auth, circuit-breaker, conversation history, multilingual (French) routing, the Operations Copilot (forecast + endpoint), and the interaction-logging endpoints; frontend component tests (Vitest + React Testing Library) for the map, fan chat/prompt-chips, and staff Copilot panel; plus an automated eval script verifying 15 bilingual/tool-calling prompts. CI runs the full suite on every push.
 - **Latency**: Staff operational queries return in a single LLM round-trip — the structured tool result is rendered deterministically instead of paying for a second "phrasing" call — while fan replies keep an LLM pass for natural, language-matched prose. Both fan and staff chat additionally support SSE streaming, so replies render token-by-token instead of waiting on the full response.
 
 ---

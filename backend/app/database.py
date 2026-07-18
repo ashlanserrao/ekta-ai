@@ -58,6 +58,21 @@ def init_db():
     )
     """)
 
+    # Anonymized product-analytics log: a random per-browser-session id, a coarse
+    # event type/view, and small non-sensitive counters only. Never raw chat text,
+    # names, or emails — this exists to demonstrate what is (and isn't) collected.
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS interaction_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        view TEXT,
+        meta TEXT
+    )
+    """)
+
     conn.commit()
 
     # 2. Seed data (if empty)

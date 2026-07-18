@@ -18,3 +18,29 @@ export async function staffLogin() {
   const data = await res.json();
   return data.token;
 }
+
+/**
+ * A random id scoped to this browser tab session — not tied to any name, email,
+ * or other personal identifier — used only to group anonymized interaction events.
+ */
+function getSessionId() {
+  let id = sessionStorage.getItem("ekta_session_id");
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    sessionStorage.setItem("ekta_session_id", id);
+  }
+  return id;
+}
+
+/**
+ * Fire-and-forget anonymized interaction logging (login/logout/page views/chat
+ * message counts) so staff can see what data the app collects. Never sends raw
+ * message text or personal fields, and never blocks or throws for the caller.
+ */
+export function logInteraction(role, eventType, view, meta) {
+  fetch(`${API_BASE}/api/v1/interactions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: getSessionId(), role, event_type: eventType, view, meta: meta || {} }),
+  }).catch(() => {});
+}

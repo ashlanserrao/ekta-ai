@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { ClipboardList, Scale, ChevronDown } from "lucide-react";
 import TEAMS from "../../../data/teams.json";
 import TeamDetailModal from "./TeamDetailModal";
 import RadarChartView from "./RadarChartView";
@@ -51,7 +52,7 @@ export default function TeamStatsTab() {
   return (
     <>
       <div className="glass-panel stats-panel">
-        <h3 className="stats-panel-title">📋 League Table</h3>
+        <h3 className="stats-panel-title"><ClipboardList size={17} style={{ verticalAlign: "-3px", marginRight: "0.35rem" }} />League Table</h3>
         <div className="table-scroll">
           <table className="stats-table">
             <thead>
@@ -91,15 +92,21 @@ export default function TeamStatsTab() {
       </div>
 
       <div className="glass-panel stats-panel">
-        <h3 className="stats-panel-title">⚖️ Compare Teams</h3>
+        <h3 className="stats-panel-title"><Scale size={17} style={{ verticalAlign: "-3px", marginRight: "0.35rem" }} />Compare Teams</h3>
         <div className="team-compare-picker">
-          <select className="select-language" aria-label="Compare team A" value={compareAId} onChange={(e) => setCompareAId(e.target.value)}>
-            {TEAMS.map((t) => <option key={t.id} value={t.id}>{t.flag} {t.name}</option>)}
-          </select>
+          <span className="select-wrapper">
+            <select className="form-select select-language" aria-label="Compare team A" value={compareAId} onChange={(e) => setCompareAId(e.target.value)}>
+              {TEAMS.map((t) => <option key={t.id} value={t.id}>{t.flag} {t.name}</option>)}
+            </select>
+            <ChevronDown size={16} className="select-chevron" aria-hidden="true" />
+          </span>
           <span className="compare-vs">vs</span>
-          <select className="select-language" aria-label="Compare team B" value={compareBId} onChange={(e) => setCompareBId(e.target.value)}>
-            {TEAMS.map((t) => <option key={t.id} value={t.id}>{t.flag} {t.name}</option>)}
-          </select>
+          <span className="select-wrapper">
+            <select className="form-select select-language" aria-label="Compare team B" value={compareBId} onChange={(e) => setCompareBId(e.target.value)}>
+              {TEAMS.map((t) => <option key={t.id} value={t.id}>{t.flag} {t.name}</option>)}
+            </select>
+            <ChevronDown size={16} className="select-chevron" aria-hidden="true" />
+          </span>
         </div>
         {teamA && teamB && (
           <RadarChartView

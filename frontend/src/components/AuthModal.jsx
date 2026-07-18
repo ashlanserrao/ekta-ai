@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Shield, Ticket, AlertTriangle, X } from "lucide-react";
 import { staffLogin } from "../lib/api";
 
 // Simple test/test login gate. Fan needs no backend token; staff exchanges the
@@ -38,12 +39,12 @@ export default function AuthModal({ mode, onClose, onSuccess }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={title}>
       <div className="modal-card glass-panel" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close login">×</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close login"><X size={20} /></button>
 
-        <div className="modal-icon" style={{ background: `linear-gradient(135deg, ${accent}, var(--accent-color))` }}>
-          {isStaff ? "🛡️" : "🎫"}
+        <div className="modal-icon" style={{ background: accent }}>
+          {isStaff ? <Shield size={26} /> : <Ticket size={26} />}
         </div>
         <h2 className="modal-title">{title}</h2>
         <p className="modal-sub">
@@ -75,7 +76,7 @@ export default function AuthModal({ mode, onClose, onSuccess }) {
             disabled={loading}
           />
 
-          {error && <div className="form-error">⚠️ {error}</div>}
+          {error && <div className="form-error"><AlertTriangle size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />{error}</div>}
 
           <button type="submit" className="btn-primary modal-submit" disabled={loading}>
             {loading ? "Signing in…" : `Enter as ${isStaff ? "Staff" : "Fan"}`}

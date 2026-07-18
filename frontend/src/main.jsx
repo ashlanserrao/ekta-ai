@@ -1,5 +1,6 @@
 import React, { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { AlertTriangle } from 'lucide-react'
 import './index.css'
 import './landing.css'
 import './fan.css'
@@ -34,7 +35,7 @@ class ErrorBoundary extends React.Component {
           padding: '2rem',
           textAlign: 'center'
         }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+          <div style={{ marginBottom: '1rem' }}><AlertTriangle size={48} color="#ef4444" /></div>
           <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontWeight: '700' }}>Something went wrong</h1>
           <p style={{ color: '#94a3b8', marginBottom: '2rem', maxWidth: '500px' }}>
             An unexpected error occurred in the application. Please try reloading the page or contact support if the issue persists.

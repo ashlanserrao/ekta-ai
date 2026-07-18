@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { X } from "lucide-react";
 import {
   Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
@@ -25,7 +26,7 @@ export default function TeamDetailModal({ teamId, onClose }) {
     <>
       <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={`${team.name} team detail`}>
         <div className="modal-card glass-panel team-modal" onClick={(e) => e.stopPropagation()}>
-          <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
 
           <div className="team-modal-header">
             <span className="team-modal-flag">{team.flag}</span>
@@ -43,7 +44,7 @@ export default function TeamDetailModal({ teamId, onClose }) {
             <div className="profile-row"><span className="profile-key">Tackles / Game</span><span className="profile-val">{team.stats.tacklesPerGame}</span></div>
             <div className="profile-row"><span className="profile-key">Fouls / Game</span><span className="profile-val">{team.stats.foulsPerGame}</span></div>
             <div className="profile-row"><span className="profile-key">Clean Sheets</span><span className="profile-val">{team.stats.cleanSheets}</span></div>
-            <div className="profile-row"><span className="profile-key">Cards</span><span className="profile-val">🟨 {team.stats.yellowCards} · 🟥 {team.stats.redCards}</span></div>
+            <div className="profile-row"><span className="profile-key">Cards</span><span className="profile-val"><span className="card-chip yellow" /> {team.stats.yellowCards} · <span className="card-chip red" /> {team.stats.redCards}</span></div>
           </div>
 
           <h4 className="stats-panel-title">xG vs Actual Goals</h4>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Bot, ChevronDown } from "lucide-react";
 import FanChat from "./FanChat";
 
 // Floating bottom-right assistant. Collapsed = a circular robot button with an
@@ -24,7 +25,7 @@ export default function ChatWidget({ onRoute }) {
           aria-label={open ? "Close assistant" : "Open assistant"}
           aria-expanded={open}
         >
-          {open ? "▾" : "🤖"}
+          {open ? <ChevronDown size={22} /> : <Bot size={22} />}
         </button>
       </div>
     </div>

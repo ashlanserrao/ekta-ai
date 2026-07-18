@@ -1,32 +1,31 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Zap, WifiOff, Accessibility, Toilet, Navigation, AlertTriangle, Volume2, VolumeX, Mic, ChevronDown } from "lucide-react";
 import { useVoice } from "../../hooks/useVoice";
 import { useChatStream } from "../../hooks/useChatStream";
-import { API_BASE } from "../../lib/api";
+import { API_BASE, logInteraction } from "../../lib/api";
 
 const getProviderBadge = (provider) => {
-  if (provider === "groq") return <span className="provider-badge groq">⚡ Groq Core</span>;
-  return <span className="provider-badge offline">🔌 Offline Mode</span>;
+  if (provider === "groq") return <span className="provider-badge groq"><Zap size={14} /> Groq Core</span>;
+  return <span className="provider-badge offline"><WifiOff size={14} /> Offline Mode</span>;
 };
 
 const PROMPT_SUGGESTIONS = {
   en: [
-    "♿ Wheelchair route from Gate 2 to Section 204",
-    "🚻 Where are the accessible restrooms?",
-    "🍽️ Any halal food options?",
+    { icon: Accessibility, text: "Wheelchair route from Gate 2 to Section 204" },
+    { icon: Toilet, text: "Where are the accessible restrooms?" },
+    { icon: Navigation, text: "How do I get from Gate 4 to Gate 1?" },
   ],
   es: [
-    "♿ Ruta accesible de Gate 1 a Section 105",
-    "🚻 ¿Dónde están los baños accesibles?",
-    "🍽️ ¿Opciones de comida halal?",
+    { icon: Accessibility, text: "Ruta accesible de Gate 1 a Section 105" },
+    { icon: Toilet, text: "¿Dónde están los baños accesibles?" },
+    { icon: Navigation, text: "¿Cómo llego de la Puerta 4 a la Puerta 1?" },
   ],
   fr: [
-    "♿ Itinéraire accessible de Porte 3 à Section 305",
-    "🚻 Où sont les toilettes accessibles ?",
-    "🍽️ Options de nourriture halal ?",
+    { icon: Accessibility, text: "Itinéraire accessible de Porte 3 à Section 305" },
+    { icon: Toilet, text: "Où sont les toilettes accessibles ?" },
+    { icon: Navigation, text: "Comment aller de la Porte 4 à la Porte 1 ?" },
   ],
 };
-
-const chipText = (chip) => chip.replace(/^[^\p{L}\p{N}]+/u, "").trim();
 
 // The fan chat assistant, decoupled from the map. Emits generated routes via onRoute
 // so the parent can render them on the Live Stadium Map.
@@ -58,6 +57,7 @@ export default function FanChat({ onRoute }) {
     setFanInput("");
     setChatLoading(true);
     setRateLimitMessage("");
+    logInteraction("fan", "chat_message", "chat", { length: userMsg.length, language: fanLanguage });
 
     try {
       const historyPayload = fanMessages.slice(-3).map((m) => ({
@@ -74,7 +74,7 @@ export default function FanChat({ onRoute }) {
       if (res.status === 429) {
         const err = await res.json();
         setRateLimitMessage(err.detail);
-        setFanMessages((prev) => [...prev, { sender: "bot", text: "⚠️ System busy. Rate limit exceeded. Please wait a moment." }]);
+        setFanMessages((prev) => [...prev, { sender: "bot", text: "System busy. Rate limit exceeded. Please wait a moment." }]);
         setChatLoading(false);
         return;
       }
@@ -116,17 +116,20 @@ export default function FanChat({ onRoute }) {
           <p className="chat-subtitle">Ask directions, gate info or facilities.</p>
         </div>
         <div className="flex-align-center">
-          <select
-            value={fanLanguage}
-            onChange={(e) => setFanLanguage(e.target.value)}
-            className="select-language"
-            aria-label="Select Assistant Language"
-            disabled={chatLoading}
-          >
-            <option value="en">English 🇬🇧</option>
-            <option value="es">Español 🇪🇸</option>
-            <option value="fr">Français 🇫🇷</option>
-          </select>
+          <span className="select-wrapper">
+            <select
+              value={fanLanguage}
+              onChange={(e) => setFanLanguage(e.target.value)}
+              className="form-select select-language"
+              aria-label="Select Assistant Language"
+              disabled={chatLoading}
+            >
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+            </select>
+            <ChevronDown size={16} className="select-chevron" aria-hidden="true" />
+          </span>
           <button
             onClick={() => {
               setVoiceEnabled(!voiceEnabled);
@@ -136,7 +139,7 @@ export default function FanChat({ onRoute }) {
             aria-label="Toggle voice output read back"
             disabled={chatLoading}
           >
-            🔊 {voiceEnabled ? "On" : "Off"}
+            {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />} {voiceEnabled ? "On" : "Off"}
           </button>
         </div>
       </div>
@@ -148,14 +151,14 @@ export default function FanChat({ onRoute }) {
         {!fanMessages.some((m) => m.sender === "user") && !chatLoading && (
           <div className="prompt-chips" role="group" aria-label="Example questions">
             {(PROMPT_SUGGESTIONS[fanLanguage] || PROMPT_SUGGESTIONS.en).map((chip, i) => (
-              <button key={i} type="button" className="prompt-chip" onClick={() => handleFanSend(null, chipText(chip))}>
-                {chip}
+              <button key={i} type="button" className="prompt-chip" onClick={() => handleFanSend(null, chip.text)}>
+                <chip.icon size={14} /> {chip.text}
               </button>
             ))}
           </div>
         )}
         {chatLoading && <div className="message-bubble bot typing-indicator">Assistant is typing...</div>}
-        {rateLimitMessage && <div className="rate-limit-alert">{rateLimitMessage}</div>}
+        {rateLimitMessage && <div className="rate-limit-alert"><AlertTriangle size={14} /> {rateLimitMessage}</div>}
         <div ref={chatEndRef} />
       </div>
 
@@ -170,7 +173,7 @@ export default function FanChat({ onRoute }) {
           disabled={chatLoading}
         />
         <button type="button" onClick={toggleListening} className={`voice-btn ${isListening ? "active" : ""}`} aria-label="Toggle Voice Input Recording" disabled={chatLoading}>
-          🎙️
+          <Mic size={16} />
         </button>
         <button type="submit" className="btn-primary" disabled={chatLoading || !fanInput.trim()}>Send</button>
       </form>

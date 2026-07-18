@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Map, BarChart3, Ticket, Calendar, User, Settings, Menu, LogOut } from "lucide-react";
+import { logInteraction } from "../../lib/api";
 import MapView from "./MapView";
 import StatsView from "./StatsView";
 import TicketView from "./TicketView";
@@ -8,12 +10,12 @@ import SettingsView from "./SettingsView";
 import ChatWidget from "./ChatWidget";
 
 const NAV = [
-  { key: "map", icon: "🗺️", label: "Live Stadium Map" },
-  { key: "stats", icon: "📊", label: "Stats" },
-  { key: "ticket", icon: "🎫", label: "My Ticket" },
-  { key: "schedule", icon: "📅", label: "Match Schedule" },
-  { key: "profile", icon: "👤", label: "Profile" },
-  { key: "settings", icon: "⚙️", label: "Settings" },
+  { key: "map", icon: Map, label: "Live Stadium Map" },
+  { key: "stats", icon: BarChart3, label: "Stats" },
+  { key: "ticket", icon: Ticket, label: "My Ticket" },
+  { key: "schedule", icon: Calendar, label: "Match Schedule" },
+  { key: "profile", icon: User, label: "Profile" },
+  { key: "settings", icon: Settings, label: "Settings" },
 ];
 
 export default function FanApp({ gates, zones, profile, onLogout, highContrast, largeText, setHighContrast, setLargeText }) {
@@ -27,7 +29,7 @@ export default function FanApp({ gates, zones, profile, onLogout, highContrast, 
     setActiveView("map");
   };
 
-  const go = (key) => { setActiveView(key); setMobileOpen(false); };
+  const go = (key) => { setActiveView(key); setMobileOpen(false); logInteraction("fan", "page_view", key); };
 
   const renderView = () => {
     switch (activeView) {
@@ -43,7 +45,7 @@ export default function FanApp({ gates, zones, profile, onLogout, highContrast, 
 
   return (
     <div className="fan-shell">
-      <button className="sidebar-toggle" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">☰</button>
+      <button className="sidebar-toggle" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu"><Menu size={20} /></button>
 
       <aside className={`sidebar ${mobileOpen ? "open" : ""}`}>
         <div className="sidebar-brand" onClick={() => go("map")} style={{ cursor: "pointer" }}>
@@ -62,14 +64,14 @@ export default function FanApp({ gates, zones, profile, onLogout, highContrast, 
               onClick={() => go(item.key)}
               aria-current={activeView === item.key ? "page" : undefined}
             >
-              <span className="sidebar-icon">{item.icon}</span>
+              <span className="sidebar-icon"><item.icon size={18} /></span>
               <span>{item.label}</span>
             </button>
           ))}
         </nav>
 
         <button className="sidebar-item logout" onClick={onLogout}>
-          <span className="sidebar-icon">🚪</span>
+          <span className="sidebar-icon"><LogOut size={18} /></span>
           <span>Log Out</span>
         </button>
       </aside>

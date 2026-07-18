@@ -1,4 +1,5 @@
 import React from "react";
+import { Ticket } from "lucide-react";
 
 const initials = (name) =>
   (name || "Guest Fan").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -28,7 +29,7 @@ export default function ProfileView({ profile }) {
           <div className="profile-avatar">{initials(p.fullName)}</div>
           <div>
             <h2 className="profile-name">{p.fullName || "Guest Fan"}</h2>
-            <span className="profile-role">🎫 Fan · World Cup 2026</span>
+            <span className="profile-role"><Ticket size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />Fan · World Cup 2026</span>
           </div>
         </div>
 
