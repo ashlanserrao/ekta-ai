@@ -4,6 +4,8 @@ import FanApp from "./components/fan/FanApp";
 import StaffApp from "./components/staff/StaffApp";
 import { API_BASE, logInteraction } from "./lib/api";
 import { useIdleTimer } from "./hooks/useIdleTimer";
+import { LanguageProvider } from "./lib/LanguageContext";
+import { LANGUAGE_TO_CODE } from "./lib/i18n";
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -63,6 +65,14 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem("ekta_fan_profile") || "null") || DEFAULT_FAN_PROFILE; } catch { return DEFAULT_FAN_PROFILE; }
   });
 
+  // Staff profile (from onboarding, if the staff member went through it; the
+  // quick passcode-only login has no profile, which is fine - language just
+  // falls back to English). Lazily restored on mount, same as fanProfile.
+  const [staffProfile, setStaffProfile] = useState(() => {
+    if (restored.screen !== "app" || restored.viewMode !== "staff") return null;
+    try { return JSON.parse(localStorage.getItem("ekta_staff_profile") || "null"); } catch { return null; }
+  });
+
   // Persist screen/viewMode so a refresh restores the workspace instead of bouncing to landing.
   useEffect(() => {
     sessionStorage.setItem("app_screen", screen);
@@ -80,6 +90,12 @@ export default function App() {
         try { prof = JSON.parse(localStorage.getItem("ekta_fan_profile") || "null"); } catch { prof = null; }
       }
       setFanProfile(prof || DEFAULT_FAN_PROFILE);
+    } else if (mode === "staff") {
+      let prof = profile;
+      if (!prof) {
+        try { prof = JSON.parse(localStorage.getItem("ekta_staff_profile") || "null"); } catch { prof = null; }
+      }
+      setStaffProfile(prof || null);
     }
     setViewMode(mode);
     setScreen("app");
@@ -157,24 +173,29 @@ export default function App() {
     document.body.classList.toggle("large-text", largeText);
   }, [largeText]);
 
-  // Landing page
+  // Landing page (always English — language preference only applies once inside a portal)
   if (screen === "landing") {
     return <Landing onAuthenticated={enterApp} />;
   }
 
+  const activeProfile = viewMode === "staff" ? staffProfile : fanProfile;
+  const lang = LANGUAGE_TO_CODE[activeProfile?.language] || "en";
+
   // Fan workspace: sidebar layout, no top navbar
   if (viewMode === "fan") {
     return (
-      <FanApp
-        gates={gates}
-        zones={zones}
-        profile={fanProfile}
-        onLogout={handleLogout}
-        highContrast={highContrast}
-        largeText={largeText}
-        setHighContrast={setHighContrast}
-        setLargeText={setLargeText}
-      />
+      <LanguageProvider lang={lang}>
+        <FanApp
+          gates={gates}
+          zones={zones}
+          profile={fanProfile}
+          onLogout={handleLogout}
+          highContrast={highContrast}
+          largeText={largeText}
+          setHighContrast={setHighContrast}
+          setLargeText={setLargeText}
+        />
+      </LanguageProvider>
     );
   }
 
@@ -202,16 +223,18 @@ export default function App() {
   }
 
   return (
-    <StaffApp
-      zones={zones}
-      alerts={alerts}
-      gates={gates}
-      token={token}
-      onLogout={handleLogout}
-      highContrast={highContrast}
-      largeText={largeText}
-      setHighContrast={setHighContrast}
-      setLargeText={setLargeText}
-    />
+    <LanguageProvider lang={lang}>
+      <StaffApp
+        zones={zones}
+        alerts={alerts}
+        gates={gates}
+        token={token}
+        onLogout={handleLogout}
+        highContrast={highContrast}
+        largeText={largeText}
+        setHighContrast={setHighContrast}
+        setLargeText={setLargeText}
+      />
+    </LanguageProvider>
   );
 }

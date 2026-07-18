@@ -1,7 +1,9 @@
 import React, { useMemo } from "react";
 import { MapPin } from "lucide-react";
+import { useTranslation } from "../../lib/LanguageContext";
 
 export default function TicketView({ profile }) {
+  const { t } = useTranslation();
   const p = profile || {};
 
   const ticket = useMemo(() => {
@@ -27,15 +29,15 @@ export default function TicketView({ profile }) {
   return (
     <div className="fan-view">
       <div className="view-heading">
-        <h1>My Ticket</h1>
-        <p>Your match-day pass. Present the QR code at your gate.</p>
+        <h1>{t("ticket.heading")}</h1>
+        <p>{t("ticket.sub")}</p>
       </div>
 
       <div className="ticket">
         <div className="ticket-main">
           <div className="ticket-top">
             <div className="ticket-badge">EKTA 26</div>
-            <span className="ticket-comp">FIFA World Cup 2026</span>
+            <span className="ticket-comp">{t("ticket.competition")}</span>
           </div>
 
           <div className="ticket-match">
@@ -49,7 +51,7 @@ export default function TicketView({ profile }) {
           </div>
 
           <div className="ticket-stage-row">
-            <span className="ticket-stage">The Final</span>
+            <span className="ticket-stage">{t("ticket.stageFinal")}</span>
             <span className="ticket-datetime">Sun, Jul 19 2026 · 15:00</span>
           </div>
 
@@ -57,11 +59,11 @@ export default function TicketView({ profile }) {
 
           <div className="ticket-holder">
             <div>
-              <span className="ticket-label">Ticket Holder</span>
+              <span className="ticket-label">{t("ticket.ticketHolder")}</span>
               <span className="ticket-value">{holder}</span>
             </div>
             <div>
-              <span className="ticket-label">Category</span>
+              <span className="ticket-label">{t("ticket.category")}</span>
               <span className="ticket-value">{ticket.category}</span>
             </div>
           </div>
@@ -69,10 +71,10 @@ export default function TicketView({ profile }) {
 
         <div className="ticket-stub">
           <div className="ticket-stub-grid">
-            <div><span className="ticket-label">Gate</span><span className="ticket-value big">{ticket.gate.replace("Gate ", "")}</span></div>
-            <div><span className="ticket-label">Section</span><span className="ticket-value big">{ticket.section}</span></div>
-            <div><span className="ticket-label">Row</span><span className="ticket-value big">{ticket.row}</span></div>
-            <div><span className="ticket-label">Seat</span><span className="ticket-value big">{ticket.seat}</span></div>
+            <div><span className="ticket-label">{t("ticket.gate")}</span><span className="ticket-value big">{ticket.gate.replace("Gate ", "")}</span></div>
+            <div><span className="ticket-label">{t("ticket.section")}</span><span className="ticket-value big">{ticket.section}</span></div>
+            <div><span className="ticket-label">{t("ticket.row")}</span><span className="ticket-value big">{ticket.row}</span></div>
+            <div><span className="ticket-label">{t("ticket.seat")}</span><span className="ticket-value big">{ticket.seat}</span></div>
           </div>
           <div className="ticket-barcode" aria-hidden="true">
             {Array.from({ length: 40 }).map((_, i) => (

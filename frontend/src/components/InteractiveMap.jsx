@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "../lib/LanguageContext";
 
 const NODE_COORDINATES = {
   // Gates
@@ -28,6 +29,7 @@ const NODE_COORDINATES = {
 };
 
 export default function InteractiveMap({ gates = [], zones = [], activeRoute, homeGate }) {
+  const { t } = useTranslation();
   const [hoveredZone, setHoveredZone] = useState(null);
   const [showMeTooltip, setShowMeTooltip] = useState(false);
   const homeGateCoord = homeGate ? NODE_COORDINATES[homeGate] : null;
@@ -63,9 +65,9 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute, ho
   return (
     <div className="glass-panel map-container">
       <div className="map-header">
-        <h2>Stadium Live Map & Route Planner</h2>
+        <h2>{t("map.title")}</h2>
         <p className="map-desc">
-          Hover stands sectors to view live digital twin sensor feed.
+          {t("map.desc")}
         </p>
       </div>
       <div className="map-body" aria-label="Interactive map representation of stadium gates and sections">
@@ -259,7 +261,7 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute, ho
             <g
               tabIndex="0"
               role="img"
-              aria-label={`Your gate: ${homeGate} — you are here`}
+              aria-label={t("map.youAreHereAria", { gate: homeGate })}
               onMouseEnter={() => setShowMeTooltip(true)}
               onMouseLeave={() => setShowMeTooltip(false)}
               onFocus={() => setShowMeTooltip(true)}
@@ -281,7 +283,7 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute, ho
                     rx="11"
                   />
                   <text x={homeGateCoord.x} y={homeGateCoord.y - 27} textAnchor="middle" fontSize="10.5" fontWeight="700">
-                    You are here · {homeGate}
+                    {t("map.youAreHereWithGate", { gate: homeGate })}
                   </text>
                 </g>
               )}
@@ -292,29 +294,29 @@ export default function InteractiveMap({ gates = [], zones = [], activeRoute, ho
         {/* HUD Details Panel */}
         {hoveredZoneData ? (
           <div className="map-hover-feed">
-            <strong className="map-hover-feed-title">{hoveredZoneData.name} Sensor Feed</strong>
-            <div>Occupants: <strong>{hoveredZoneData.current_crowd}</strong> / {hoveredZoneData.capacity}</div>
-            <div>Density: <strong>{Math.round(hoveredZoneData.density * 100)}%</strong></div>
+            <strong className="map-hover-feed-title">{hoveredZoneData.name} {t("map.sensorFeed")}</strong>
+            <div>{t("map.occupantsLabel")} <strong>{hoveredZoneData.current_crowd}</strong> / {hoveredZoneData.capacity}</div>
+            <div>{t("map.densityLabel")} <strong>{Math.round(hoveredZoneData.density * 100)}%</strong></div>
           </div>
         ) : (
           <div className="map-instruction-panel">
-            Hover stands quadrant for detailed sensor metrics
+            {t("map.hoverInstruction")}
           </div>
         )}
 
         {/* Map Legend */}
         <div className="map-legend-panel">
           <div className="map-legend-item">
-            <span className="map-legend-dot low"></span> Low
+            <span className="map-legend-dot low"></span> {t("map.legendLow")}
           </div>
           <div className="map-legend-item">
-            <span className="map-legend-dot medium"></span> Med
+            <span className="map-legend-dot medium"></span> {t("map.legendMed")}
           </div>
           <div className="map-legend-item">
-            <span className="map-legend-dot high"></span> High
+            <span className="map-legend-dot high"></span> {t("map.legendHigh")}
           </div>
           <div className="map-legend-item">
-            <span className="map-legend-dot closed"></span> Closed
+            <span className="map-legend-dot closed"></span> {t("map.legendClosed")}
           </div>
         </div>
       </div>

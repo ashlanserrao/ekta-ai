@@ -52,6 +52,7 @@ const STAFF_STEPS = [
       { name: "zone", label: "Assigned zone", type: "select", options: ["Zone-A", "Zone-B", "Zone-C", "Zone-D", "Zone-VIP"] },
       { name: "gate", label: "Assigned gate", type: "select", options: ["Gate 1", "Gate 2", "Gate 3", "Gate 4"] },
       { name: "callSign", label: "Radio call sign", type: "text", placeholder: "Falcon-3" },
+      { name: "language", label: "Preferred language", type: "select", options: ["English", "Español", "Français"] },
     ],
   },
 ];
@@ -59,6 +60,20 @@ const STAFF_STEPS = [
 const DRAFT_KEY = "ekta_onboarding_draft";
 const readDraft = () => {
   try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || "null"); } catch { return null; }
+};
+
+// A <select> visually shows its first option as the default even when the
+// user never touches it, but that default was never actually written into
+// form state - so an untouched dropdown silently saved as blank. Seeding
+// every select's first option into form state up front keeps what's saved
+// in sync with what's displayed.
+const defaultFormFor = (role) => {
+  const steps = role === "staff" ? STAFF_STEPS : FAN_STEPS;
+  const defaults = {};
+  steps.forEach((s) => s.fields.forEach((f) => {
+    if (f.type === "select") defaults[f.name] = f.options[0];
+  }));
+  return defaults;
 };
 
 function Field({ field, value, onChange }) {
@@ -101,7 +116,7 @@ export default function OnboardingWizard({ onClose, onComplete }) {
   const draft = readDraft();
   const [role, setRole] = useState(draft?.role ?? null); // 'fan' | 'staff'
   const [step, setStep] = useState(draft?.step ?? 0);
-  const [form, setForm] = useState(draft?.form ?? {});
+  const [form, setForm] = useState(draft?.form ?? (draft?.role ? defaultFormFor(draft.role) : {}));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -137,7 +152,7 @@ export default function OnboardingWizard({ onClose, onComplete }) {
   }, []);
 
   const chooseRole = (r) => {
-    setRole(r); setStep(0); setForm({}); setError("");
+    setRole(r); setStep(0); setForm(defaultFormFor(r)); setError("");
     window.history.pushState({ screen: "onboarding", role: r, step: 0 }, "");
   };
 

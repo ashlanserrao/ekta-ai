@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Zap, WifiOff, Brain, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { API_BASE } from "../../lib/api";
+import { useTranslation } from "../../lib/LanguageContext";
 
-const getProviderBadge = (provider) => {
+const getProviderBadge = (provider, t) => {
   if (provider === "groq") {
-    return <span className="provider-badge groq"><Zap size={14} /> Groq Core</span>;
+    return <span className="provider-badge groq"><Zap size={14} /> {t("staffCopilot.providerGroq")}</span>;
   }
-  return <span className="provider-badge offline"><WifiOff size={14} /> Offline Mode</span>;
+  return <span className="provider-badge offline"><WifiOff size={14} /> {t("staffCopilot.providerOffline")}</span>;
 };
 
 export default function OperationsCopilotView({ token, onLogout }) {
+  const { t } = useTranslation();
   const [copilot, setCopilot] = useState(null);
 
   useEffect(() => {
@@ -43,15 +45,15 @@ export default function OperationsCopilotView({ token, onLogout }) {
         <div className="copilot-header">
           <h2>
             <Brain size={20} style={{ verticalAlign: "-4px", marginRight: "0.4rem" }} />
-            Operations Copilot
-            {copilot && getProviderBadge(copilot.provider)}
+            {t("staffCopilot.heading")}
+            {copilot && getProviderBadge(copilot.provider, t)}
           </h2>
           <span className="copilot-horizon">
-            {copilot ? `${copilot.horizon_minutes}-min forecast` : "Initializing…"}
+            {copilot ? `${copilot.horizon_minutes}${t("staffCopilot.forecastSuffix")}` : t("staffCopilot.initializing")}
           </span>
         </div>
         <p className="panel-desc">
-          Proactive decision support: forecasts congestion from live twin trends and recommends actions before bottlenecks form.
+          {t("staffCopilot.desc")}
         </p>
 
         {copilot ? (
@@ -75,7 +77,7 @@ export default function OperationsCopilotView({ token, onLogout }) {
                       </span>
                       <span className={`copilot-trend ${trendClass}`}>
                         <TrendIcon size={14} style={{ verticalAlign: "-2px" }} /> {r.trend}
-                        {r.eta_minutes != null && r.trend === "rising" ? ` · ~${r.eta_minutes}m to critical` : ""}
+                        {r.eta_minutes != null && r.trend === "rising" ? ` · ~${r.eta_minutes}${t("staffCopilot.etaSuffix")}` : ""}
                       </span>
                     </div>
                   );
@@ -95,11 +97,11 @@ export default function OperationsCopilotView({ token, onLogout }) {
                 ))}
               </div>
             ) : (
-              <div className="copilot-nominal"><CheckCircle2 size={16} style={{ verticalAlign: "-3px", marginRight: "0.3rem" }} />No interventions required — all zones nominal.</div>
+              <div className="copilot-nominal"><CheckCircle2 size={16} style={{ verticalAlign: "-3px", marginRight: "0.3rem" }} />{t("staffCopilot.noInterventions")}</div>
             )}
           </>
         ) : (
-          <div className="copilot-nominal">Connecting to Operations Copilot…</div>
+          <div className="copilot-nominal">{t("staffCopilot.connecting")}</div>
         )}
       </div>
     </div>

@@ -1,32 +1,34 @@
 import React, { useState } from "react";
+import { useTranslation } from "../../lib/LanguageContext";
 import TeamStatsTab from "./stats/TeamStatsTab";
 import PlayerStatsTab from "./stats/PlayerStatsTab";
 
 const TABS = [
-  { key: "team", label: "Team Stats" },
-  { key: "player", label: "Player Stats" },
+  { key: "team", labelKey: "stats.tabTeam" },
+  { key: "player", labelKey: "stats.tabPlayer" },
 ];
 
 export default function StatsView() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("team");
 
   return (
     <div className="fan-view">
       <div className="view-heading">
-        <h1>Stats</h1>
-        <p>FIFA World Cup 2026 — team and player statistics for the tournament.</p>
+        <h1>{t("stats.heading")}</h1>
+        <p>{t("stats.sub")}</p>
       </div>
 
       <div className="stats-tabs" role="tablist" aria-label="Stats tabs">
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <button
-            key={t.key}
+            key={tab.key}
             role="tab"
-            aria-selected={activeTab === t.key}
-            className={`stats-tab ${activeTab === t.key ? "active" : ""}`}
-            onClick={() => setActiveTab(t.key)}
+            aria-selected={activeTab === tab.key}
+            className={`stats-tab ${activeTab === tab.key ? "active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
           >
-            {t.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>

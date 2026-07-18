@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { MapPin } from "lucide-react";
 import MATCHES from "../../../data/matches.json";
+import { useTranslation } from "../../../lib/LanguageContext";
 import MatchDetailModal from "./MatchDetailModal";
 import { roundLabel, formatScore } from "./scheduleHelpers";
 
 const SUB_TABS = [
-  { key: "ongoing", label: "Ongoing" },
-  { key: "recent", label: "Recent" },
-  { key: "upcoming", label: "Upcoming" },
+  { key: "ongoing", labelKey: "schedule.subTabOngoing" },
+  { key: "recent", labelKey: "schedule.subTabRecent" },
+  { key: "upcoming", labelKey: "schedule.subTabUpcoming" },
 ];
 
 const MATCHERS = {
@@ -17,6 +18,7 @@ const MATCHERS = {
 };
 
 export default function MatchesTab() {
+  const { t } = useTranslation();
   const hasLive = MATCHES.some((m) => m.status === "live");
   const [subTab, setSubTab] = useState(hasLive ? "ongoing" : "recent");
   const [selectedMatch, setSelectedMatch] = useState(null);
@@ -31,21 +33,21 @@ export default function MatchesTab() {
   return (
     <div className="glass-panel stats-panel">
       <div className="stats-tabs" role="tablist" aria-label="Match status">
-        {SUB_TABS.map((t) => (
+        {SUB_TABS.map((tab) => (
           <button
-            key={t.key}
+            key={tab.key}
             role="tab"
-            aria-selected={subTab === t.key}
-            className={`stats-tab ${subTab === t.key ? "active" : ""}`}
-            onClick={() => setSubTab(t.key)}
+            aria-selected={subTab === tab.key}
+            className={`stats-tab ${subTab === tab.key ? "active" : ""}`}
+            onClick={() => setSubTab(tab.key)}
           >
-            {t.label}{t.key === "ongoing" && hasLive ? <span className="live-dot" aria-hidden="true" /> : ""}
+            {t(tab.labelKey)}{tab.key === "ongoing" && hasLive ? <span className="live-dot" aria-hidden="true" /> : ""}
           </button>
         ))}
       </div>
 
       {rows.length === 0 ? (
-        <div className="stats-empty">No {SUB_TABS.find((t) => t.key === subTab).label.toLowerCase()} matches right now.</div>
+        <div className="stats-empty">{t("schedule.noMatches", { status: t(SUB_TABS.find((tab) => tab.key === subTab).labelKey).toLowerCase() })}</div>
       ) : subTab === "upcoming" ? (
         <div className="schedule-list match-list">
           {rows.map((m) => (
@@ -55,12 +57,12 @@ export default function MatchesTab() {
                 <span className="schedule-time">{m.time}</span>
               </div>
               <div className="schedule-match">
-                <span className="schedule-team">{m.teamA ? `${m.teamA.flag} ${m.teamA.name}` : "TBD"}</span>
+                <span className="schedule-team">{m.teamA ? `${m.teamA.flag} ${m.teamA.name}` : t("schedule.tbd")}</span>
                 <span className="schedule-vs">vs</span>
-                <span className="schedule-team">{m.teamB ? `${m.teamB.name} ${m.teamB.flag}` : "TBD"}</span>
+                <span className="schedule-team">{m.teamB ? `${m.teamB.name} ${m.teamB.flag}` : t("schedule.tbd")}</span>
               </div>
               <div className="schedule-meta">
-                <span className={`schedule-stage ${m.round === "F" ? "final" : ""}`}>{roundLabel(m.round)}</span>
+                <span className={`schedule-stage ${m.round === "F" ? "final" : ""}`}>{roundLabel(m.round, t)}</span>
                 <span className="schedule-venue"><MapPin size={13} style={{ verticalAlign: "-2px", marginRight: "0.25rem" }} />{m.venue}</span>
               </div>
             </div>
@@ -74,7 +76,7 @@ export default function MatchesTab() {
               <span className="result-team">{m.teamA.flag} {m.teamA.name}</span>
               <span className="result-score">{formatScore(m)}</span>
               <span className="result-team away">{m.teamB.name} {m.teamB.flag}</span>
-              <span className="result-stage">{roundLabel(m.round)}</span>
+              <span className="result-stage">{roundLabel(m.round, t)}</span>
             </div>
           ))}
         </div>

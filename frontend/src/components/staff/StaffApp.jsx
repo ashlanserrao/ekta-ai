@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Brain, Users, Map, AlertTriangle, Settings, Menu, LogOut, ZoomIn, Accessibility, History } from "lucide-react";
 import { logInteraction } from "../../lib/api";
+import { useTranslation } from "../../lib/LanguageContext";
 import OperationsCopilotView from "./OperationsCopilotView";
 import LiveCrowdView from "./LiveCrowdView";
 import StadiumMapView from "./StadiumMapView";
@@ -9,14 +10,15 @@ import DataHistoryView from "./DataHistoryView";
 import StaffChatWidget from "./StaffChatWidget";
 
 const NAV = [
-  { key: "copilot", icon: Brain, label: "Operations Copilot" },
-  { key: "crowd", icon: Users, label: "Live Crowd" },
-  { key: "map", icon: Map, label: "Stadium Live Map" },
-  { key: "alerts", icon: AlertTriangle, label: "Live Alerts" },
-  { key: "history", icon: History, label: "Data History" },
+  { key: "copilot", icon: Brain, labelKey: "staffNav.copilot" },
+  { key: "crowd", icon: Users, labelKey: "staffNav.crowd" },
+  { key: "map", icon: Map, labelKey: "staffNav.map" },
+  { key: "alerts", icon: AlertTriangle, labelKey: "staffNav.alerts" },
+  { key: "history", icon: History, labelKey: "staffNav.history" },
 ];
 
 export default function StaffApp({ zones, alerts, gates, token, onLogout, highContrast, largeText, setHighContrast, setLargeText }) {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState("copilot");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -43,7 +45,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
           <div className="logo-badge">EKTA 26</div>
           <div>
             <div className="logo-text">EktaAI</div>
-            <div className="logo-sub">Staff Operations</div>
+            <div className="logo-sub">{t("staffNav.logoSub")}</div>
           </div>
         </div>
 
@@ -56,7 +58,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
               aria-current={activeView === item.key ? "page" : undefined}
             >
               <span className="sidebar-icon"><item.icon size={18} /></span>
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </button>
           ))}
         </nav>
@@ -68,7 +70,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
             aria-expanded={settingsOpen}
           >
             <span className="sidebar-icon"><Settings size={18} /></span>
-            <span>Settings</span>
+            <span>{t("staffNav.settings")}</span>
           </button>
 
           {settingsOpen && (
@@ -78,7 +80,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
               textAlign: "left", border: "1px solid var(--border-active)",
             }}>
               <h4 style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-muted)", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.4rem", marginBottom: "0.25rem", fontWeight: "700" }}>
-                Accessibility settings
+                {t("staffNav.accessibilitySettings")}
               </h4>
               <button
                 className="btn-secondary"
@@ -87,7 +89,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
                 style={{ width: "100%", justifyContent: "flex-start", fontSize: "0.9rem", border: largeText ? "2px solid var(--accent-color)" : "1px solid var(--border-color)" }}
               >
                 <ZoomIn size={16} style={{ marginRight: "0.4rem", verticalAlign: "-3px" }} />
-                {largeText ? "Normal Text" : "Large Text"}
+                {largeText ? t("staffNav.normalText") : t("staffNav.largeText")}
               </button>
               <button
                 className="btn-secondary"
@@ -96,7 +98,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
                 style={{ width: "100%", justifyContent: "flex-start", fontSize: "0.9rem", border: highContrast ? "2px solid #ffff00" : "1px solid var(--border-color)" }}
               >
                 <Accessibility size={16} style={{ marginRight: "0.4rem", verticalAlign: "-3px" }} />
-                High Contrast
+                {t("staffNav.highContrast")}
               </button>
             </div>
           )}
@@ -104,7 +106,7 @@ export default function StaffApp({ zones, alerts, gates, token, onLogout, highCo
 
         <button className="sidebar-item logout" onClick={onLogout}>
           <span className="sidebar-icon"><LogOut size={18} /></span>
-          <span>Log Out</span>
+          <span>{t("staffNav.logout")}</span>
         </button>
       </aside>
 

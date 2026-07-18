@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Map, BarChart3, Ticket, Calendar, User, Settings, Menu, LogOut } from "lucide-react";
 import { logInteraction } from "../../lib/api";
+import { useTranslation } from "../../lib/LanguageContext";
 import MapView from "./MapView";
 import StatsView from "./StatsView";
 import TicketView from "./TicketView";
@@ -10,15 +11,16 @@ import SettingsView from "./SettingsView";
 import ChatWidget from "./ChatWidget";
 
 const NAV = [
-  { key: "map", icon: Map, label: "Live Stadium Map" },
-  { key: "stats", icon: BarChart3, label: "Stats" },
-  { key: "ticket", icon: Ticket, label: "My Ticket" },
-  { key: "schedule", icon: Calendar, label: "Match Schedule" },
-  { key: "profile", icon: User, label: "Profile" },
-  { key: "settings", icon: Settings, label: "Settings" },
+  { key: "map", icon: Map, labelKey: "nav.map" },
+  { key: "stats", icon: BarChart3, labelKey: "nav.stats" },
+  { key: "ticket", icon: Ticket, labelKey: "nav.ticket" },
+  { key: "schedule", icon: Calendar, labelKey: "nav.schedule" },
+  { key: "profile", icon: User, labelKey: "nav.profile" },
+  { key: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
 export default function FanApp({ gates, zones, profile, onLogout, highContrast, largeText, setHighContrast, setLargeText }) {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState("map");
   const [activeRoute, setActiveRoute] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -52,7 +54,7 @@ export default function FanApp({ gates, zones, profile, onLogout, highContrast, 
           <div className="logo-badge">EKTA 26</div>
           <div>
             <div className="logo-text">EktaAI</div>
-            <div className="logo-sub">Fan Portal</div>
+            <div className="logo-sub">{t("nav.logoSub")}</div>
           </div>
         </div>
 
@@ -65,14 +67,14 @@ export default function FanApp({ gates, zones, profile, onLogout, highContrast, 
               aria-current={activeView === item.key ? "page" : undefined}
             >
               <span className="sidebar-icon"><item.icon size={18} /></span>
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </button>
           ))}
         </nav>
 
         <button className="sidebar-item logout" onClick={onLogout}>
           <span className="sidebar-icon"><LogOut size={18} /></span>
-          <span>Log Out</span>
+          <span>{t("nav.logout")}</span>
         </button>
       </aside>
 

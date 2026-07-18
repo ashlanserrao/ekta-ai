@@ -1,12 +1,14 @@
 import React from "react";
+import { useTranslation } from "../../lib/LanguageContext";
 
 export default function LiveAlertsView({ alerts }) {
+  const { t } = useTranslation();
   return (
     <div className="fan-view">
       <div className="glass-panel alert-panel padding-large">
-        <h2>Operations Live Alerts (GenAI Action Engine)</h2>
+        <h2>{t("staffAlerts.heading")}</h2>
         <p className="alert-panel-desc">
-          Plain-language alerts triggered automatically by digital twin anomalies.
+          {t("staffAlerts.desc")}
         </p>
 
         <div className="alert-list">
@@ -19,7 +21,7 @@ export default function LiveAlertsView({ alerts }) {
                 </span>
               </div>
               <div className="alert-action">
-                <strong>Recommendation:</strong> {alert.recommended_action}
+                <strong>{t("staffAlerts.recommendation")}</strong> {alert.recommended_action}
               </div>
             </div>
           ))}

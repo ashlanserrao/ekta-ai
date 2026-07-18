@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Trophy } from "lucide-react";
 import MATCHES from "../../../data/matches.json";
+import { useTranslation } from "../../../lib/LanguageContext";
 import MatchDetailModal from "./MatchDetailModal";
 import { ROUND_ORDER, roundLabel } from "./scheduleHelpers";
 
 export default function BracketTab() {
+  const { t } = useTranslation();
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [highlightedTeamId, setHighlightedTeamId] = useState(null);
 
@@ -20,11 +22,11 @@ export default function BracketTab() {
 
   return (
     <div className="glass-panel stats-panel bracket-scroll">
-      <p className="panel-desc">Click a team to trace its path through the bracket. Click a played match for details.</p>
+      <p className="panel-desc">{t("schedule.bracketDesc")}</p>
       <div className="bracket-columns">
         {ROUND_ORDER.map((round) => (
           <div key={round} className="bracket-round">
-            <h4 className="bracket-round-title">{roundLabel(round)}</h4>
+            <h4 className="bracket-round-title">{roundLabel(round, t)}</h4>
             <div className="bracket-round-matches">
               {MATCHES.filter((m) => m.round === round).map((m) => (
                 <div
@@ -41,7 +43,7 @@ export default function BracketTab() {
                       disabled={!team}
                       onClick={team ? (e) => toggleHighlight(team.id, e) : undefined}
                     >
-                      <span className="bracket-team-name">{team ? `${team.flag} ${team.name}` : "TBD"}</span>
+                      <span className="bracket-team-name">{team ? `${team.flag} ${team.name}` : t("schedule.tbd")}</span>
                       <span className="bracket-team-score">
                         {team ? (idx === 0 ? m.scoreA : m.scoreB) ?? "" : ""}
                       </span>
@@ -55,7 +57,7 @@ export default function BracketTab() {
 
         {champion && (
           <div className="bracket-round bracket-champion-round">
-            <h4 className="bracket-round-title">Champion</h4>
+            <h4 className="bracket-round-title">{t("schedule.champion")}</h4>
             <div className="bracket-champion-card">
               <Trophy size={20} color="#f59e0b" />
               <span className="bracket-team-name">{champion.flag} {champion.name}</span>
