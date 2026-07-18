@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Lite build: no torch / sentence-transformers / faiss-cpu, so no baked embedding
+# model either. backend/app/rag.py catches the resulting ImportError at startup
+# and transparently falls back to keyword-matching RAG — same endpoints, same
+# responses shape, just without semantic ranking. Everything else (Groq chat,
+# tool-calling, routing, digital twin, Operations Copilot, alerts) is unaffected.
+# Use this on RAM-constrained free tiers (e.g. Render/Koyeb free = 512MB) where
+# the full ML stack in the root Dockerfile gets OOM-killed on startup.
+COPY ./backend/requirements-lite.txt .
+RUN pip install --no-cache-dir -r requirements-lite.txt
+
+COPY ./backend /app/backend
+
+ENV ENV=production
+
+EXPOSE 8000
+
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
